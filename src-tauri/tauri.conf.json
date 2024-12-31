@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0-rc",
+  "productName": "chords-lsl-connector",
+  "version": "0.1.0",
+  "identifier": "com.upsidedownlab.chords",
+  "build": {
+    "frontendDist": "../out",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Chords LSL Connector",
+        "width": 500,
+        "height": 200,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/chords-logo.png",
+      "icons/Chords-logo-128px.ico"
+    ]
+  }
+}
