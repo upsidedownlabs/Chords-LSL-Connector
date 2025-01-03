@@ -18,6 +18,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+      - name: Debug the runner OS
+        run: echo "Running on ${{ runner.os }}"
+
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
