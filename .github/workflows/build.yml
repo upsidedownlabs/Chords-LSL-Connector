@@ -36,6 +36,9 @@ jobs:
           npm install
           npm install tailwindcss-animate
 
+      - name: Install Tauri CLI
+        run: npm install -g tauri
+
       - name: Build Tauri App
         run: npm run tauri build
 
