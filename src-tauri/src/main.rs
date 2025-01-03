@@ -25,7 +25,6 @@ lazy_static! {
 fn detect_arduino() -> Result<String, String> {
     loop {
         let ports = serialport::available_ports().expect("No ports found!");
-        println!("Attempting to connect to port: {:#?}", ports);
 
 
         for port_info in ports {
@@ -52,6 +51,7 @@ fn detect_arduino() -> Result<String, String> {
                     *PACKET_SIZE.lock().unwrap() = 10; // Change the baud rate dynamically
                     *CHANNELS.lock().unwrap() = 3; // Change the baud rate dynamically
                 } 
+         
             }
 
             match serialport::new(&port_name, *BAUDRATE.lock().unwrap())
@@ -85,7 +85,12 @@ fn detect_arduino() -> Result<String, String> {
                                         || response.contains("GIGA-R1")
                                         || response.contains("RPI-PICO-RP2040")
                                         || response.contains("UNO-CLONE")
+                                        || response.contains("NANO-CLONE")
                                     {
+                                        if response.contains("NANO-CLONE"){
+                                            *PACKET_SIZE.lock().unwrap() = 20; // Change the baud rate dynamically
+                                            *CHANNELS.lock().unwrap() = 8; // Change the baud rate dynamically
+                                        }
                                         println!("Valid device found on port: {}", port_name);
                                         drop(port);
                                         return Ok(port_name); // Return the found port name directly
@@ -99,7 +104,6 @@ fn detect_arduino() -> Result<String, String> {
                             }
                         }
                     }
-
                     println!("Final response from port {}: {}", port_name, response);
 
                     drop(port);
@@ -138,7 +142,8 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
     // Create StreamOutlet in the same thread
     let (tx, rx) = std::sync::mpsc::channel::<Vec<i16>>();
     let outlet = Arc::new(Mutex::new(StreamOutlet::new(&info, 0, 360).unwrap()));
-    
+
+
 
     // Use spawn_blocking to handle the task in a separate thread
     tokio::task::spawn_blocking(move || {
@@ -151,12 +156,9 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
                     println!("Connected to device on port: {}", port_name);
                     let start_command = b"START\r\n";
 
-                    for i in 1..=3 {
+                    for i in 1..=5 {
                         if let Err(e) = port.write_all(start_command) {
-                            println!("Failed to send START command (attempt {}): {:?}", i, e);
-                        } else {
-                            println!("START command sent (attempt {}).", i);
-                        }
+                        } 
                         thread::sleep(Duration::from_millis(400));
                     }
 
