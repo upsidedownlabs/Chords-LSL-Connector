@@ -46,6 +46,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev pkg-config
+          sudo apt-get install -y libgdk-3.0-dev
 
       - name: Set PKG_CONFIG_PATH (Ubuntu only)
         if: runner.os == 'ubuntu-latest'
