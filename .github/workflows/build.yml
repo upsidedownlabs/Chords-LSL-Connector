@@ -41,17 +41,14 @@ jobs:
         run: |
           brew install vips
 
-      - name: Install Tauri CLI
-        run: |
-          npm install -g tauri
-          tauri --version  # Verify Tauri CLI installation
+      - name: Install Tauri CLI (locally)
+        run: npm install @tauri-apps/cli
 
       - name: Clean npm cache
         run: npm cache clean --force
 
       - name: Build Tauri App
-        run: |
-          npm run tauri build
+        run: npx tauri build  # Use npx to run locally installed Tauri
 
       - name: Upload Artifact
         if: success()
