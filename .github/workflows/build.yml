@@ -3,10 +3,10 @@ name: Build Tauri App
 on:
   push:
     branches:
-      - main  # Trigger on push to the 'main' branch
+      - main
   pull_request:
     branches:
-      - main  # Trigger on pull requests to 'main'
+      - main
 
 jobs:
   build:
@@ -39,6 +39,13 @@ jobs:
       - name: Install Tauri CLI
         run: npm install -g tauri
 
+      - name: Install dependencies for sharp (macOS only)
+        if: runner.os == 'macos-latest'
+        run: brew install vips
+
+      - name: Clean npm cache
+        run: npm cache clean --force
+
       - name: Build Tauri App
         run: npm run tauri build
 
@@ -47,4 +54,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ runner.os }}-tauri-app
-          path: src-tauri/target/release/bundle/  # Update this path if your build output is different
+          path: src-tauri/target/release/bundle/
