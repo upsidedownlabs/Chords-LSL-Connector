@@ -35,6 +35,8 @@ jobs:
         run: |
           npm install
           npm install tailwindcss-animate
+          echo "Running on $runner.os"
+
 
       - name: Install dependencies for sharp (macOS only)
         if: runner.os == 'macos-latest'
