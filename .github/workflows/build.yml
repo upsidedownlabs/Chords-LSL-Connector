@@ -42,13 +42,16 @@ jobs:
           brew install vips
 
       - name: Install Tauri CLI
-        run: npm install -g tauri
+        run: |
+          npm install -g tauri
+          tauri --version  # Verify Tauri CLI installation
 
       - name: Clean npm cache
         run: npm cache clean --force
 
       - name: Build Tauri App
-        run: npm run tauri build
+        run: |
+          npm run tauri build
 
       - name: Upload Artifact
         if: success()
