@@ -18,9 +18,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
       - name: Debug the runner OS
         run: echo "Running on ${{ runner.os }}"
-
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -40,19 +40,19 @@ jobs:
           npm install tailwindcss-animate
 
       - name: Install dependencies for sharp (macOS only)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macos-latest'
         run: |
           brew install vips
 
       - name: Install GDK and GTK dependencies (Ubuntu only)
-        if: runner.os == 'Linux'
+        if: runner.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev pkg-config
-          sudo apt-get install -y libgdk-3.0-dev
+          sudo apt-get install -y libgdk-pixbuf2.0-dev
 
       - name: Set PKG_CONFIG_PATH (Ubuntu only)
-        if: runner.os == 'Linux'
+        if: runner.os == 'ubuntu-latest'
         run: |
           # Set PKG_CONFIG_PATH to the directory containing gdk-3.0.pc
           echo "/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
