@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest] 
+        os: [macos-latest, windows-latest, manjaro] 
 
     steps:
       - name: Checkout Code
@@ -38,13 +38,11 @@ jobs:
         run: |
           npm install
           npm install tailwindcss-animate
-
       - name: Install GTK and Build Tools (Manjaro only)
         if: runner.os == 'Linux'
         run: |
           sudo pacman -Syu --noconfirm
           sudo pacman -S --noconfirm gtk3 base-devel gdk-pixbuf2
-
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
 
@@ -59,4 +57,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ runner.os }}-tauri-app
-          path: src-tauri
+          path: src-tauri/target/release/bundle/
