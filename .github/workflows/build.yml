@@ -42,8 +42,9 @@ jobs:
       - name: Install GTK and Build Tools (Manjaro only)
         if: runner.os == 'Linux'
         run: |
-          sudo pacman -Syu --noconfirm
-          sudo pacman -S --noconfirm gtk3 base-devel gdk-pixbuf2
+         sudo apt-get update
+         sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+       
 
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
