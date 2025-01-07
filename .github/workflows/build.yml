@@ -38,11 +38,13 @@ jobs:
         run: |
           npm install
           npm install tailwindcss-animate
+
       - name: Install GTK and Build Tools (Manjaro only)
         if: runner.os == 'Linux'
         run: |
           sudo pacman -Syu --noconfirm
           sudo pacman -S --noconfirm gtk3 base-devel gdk-pixbuf2
+
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
 
@@ -58,3 +60,7 @@ jobs:
         with:
           name: ${{ runner.os }}-tauri-app
           path: src-tauri/target/release/bundle/
+
+      # Environment File Handling: Avoid deprecated set-output
+      - name: Set output using environment files
+        run: echo "BUILD_SUCCESS=true" >> $GITHUB_ENV
