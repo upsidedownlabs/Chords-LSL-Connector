@@ -26,10 +26,10 @@
   "bundle": {
     "active": true,
     "targets": [
-      "deb",    // For Linux distributions (Debian-based, e.g., Ubuntu)
-      "msi",    // For Windows
-      "dmg",    // For macOS
-      "rpm"     // For RPM-based Linux distributions (e.g., Fedora, CentOS, RHEL)
+      "deb",   
+      "msi",    
+      "dmg",   
+      "rpm"   
     ],
     "icon": [
       "icons/chords-logo.png",
