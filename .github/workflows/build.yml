@@ -1,4 +1,4 @@
-name: Build Tauri App
+name: Build and Release Tauri App
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-22.04] 
+        os: [macos-latest, windows-latest, ubuntu-22.04]
 
     steps:
       - name: Checkout Code
@@ -61,6 +61,19 @@ jobs:
           name: ${{ runner.os }}-tauri-app
           path: src-tauri/target/release/bundle/
 
-      # Environment File Handling: Avoid deprecated set-output
-      - name: Set output using environment files
-        run: echo "BUILD_SUCCESS=true" >> $GITHUB_ENV
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.os }}-tauri-app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: src-tauri/target/release/bundle/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
