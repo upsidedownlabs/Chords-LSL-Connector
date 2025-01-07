@@ -25,7 +25,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "deb",    // For Linux distributions (Debian-based, e.g., Ubuntu)
+      "msi",    // For Windows
+      "dmg",    // For macOS
+      "rpm"     // For RPM-based Linux distributions (e.g., Fedora, CentOS, RHEL)
+    ],
     "icon": [
       "icons/chords-logo.png",
       "icons/Chords-logo-128px.ico"
