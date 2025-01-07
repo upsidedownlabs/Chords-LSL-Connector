@@ -15,6 +15,9 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-22.04]
 
+    outputs:
+      artifact_name: ${{ steps.artifact-name.outputs.name }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -52,13 +55,17 @@ jobs:
         run: npm cache clean --force
 
       - name: Build Tauri App
-        run: npx tauri build  # Use npx to run locally installed Tauri
+        run: npx tauri build
+
+      - name: Set Artifact Name
+        id: artifact-name
+        run: echo "::set-output name=name::${{ matrix.os }}-tauri-app"
 
       - name: Upload Artifact
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ runner.os }}-tauri-app
+          name: ${{ matrix.os }}-tauri-app
           path: src-tauri/target/release/bundle/
 
   release:
@@ -66,10 +73,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.os }}-tauri-app
+          name: ${{ needs.build.outputs.artifact_name }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
