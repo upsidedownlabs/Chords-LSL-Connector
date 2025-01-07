@@ -39,12 +39,11 @@ jobs:
           npm install
           npm install tailwindcss-animate
 
-      - name: Install GTK and Build Tools (Manjaro only)
+      - name: Install GTK and Build Tools (Ubuntu only)
         if: runner.os == 'Linux'
         run: |
-         sudo apt-get update
-         sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-       
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev build-essential pkg-config
 
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
