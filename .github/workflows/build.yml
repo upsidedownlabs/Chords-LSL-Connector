@@ -15,9 +15,6 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-22.04]
 
-    outputs:
-      artifact_name: ${{ steps.artifact-name.outputs.name }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -57,15 +54,11 @@ jobs:
       - name: Build Tauri App
         run: npx tauri build
 
-      - name: Set Artifact Name
-        id: artifact-name
-        run: echo "::set-output name=name::${{ matrix.os }}-tauri-app"
-
       - name: Upload Artifact
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-tauri-app
+          name: tauri-app
           path: src-tauri/target/release/bundle/
 
   release:
@@ -79,7 +72,17 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ${{ needs.build.outputs.artifact_name }}
+          name: tauri-app
+
+      - name: Create Git Tag
+        id: create_tag
+        run: |
+          TAG_NAME="v$(date +'%Y.%m.%d')"
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "$TAG_NAME" -m "Automated release tag"
+          git push origin "$TAG_NAME"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
