@@ -124,16 +124,19 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-macos
+          path: src-tauri/target/release/bundle/**
 
       - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-windows
+          path: src-tauri/target/release/bundle/**
 
       - name: Download Linux Artifact
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-linux
+          path: src-tauri/target/release/bundle/**
 
       # Create GitHub Release with only artifacts
       - name: Create Release
@@ -141,9 +144,9 @@ jobs:
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: |
-            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-macos
-            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-windows
-            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-linux
+            tauri-app-macos/**
+            tauri-app-windows/**
+            tauri-app-linux/**
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
