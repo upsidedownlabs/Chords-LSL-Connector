@@ -2,11 +2,45 @@ name: Build and Release Tauri App
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 jobs:
+  check-version-and-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Get Version from package.json
+        id: get_version
+        run: |
+          version=$(jq -r '.version' package.json)
+          echo "::set-output name=version::$version"
+
+      - name: Check if Tag Exists
+        id: check_tag
+        run: |
+          version=${{ steps.get_version.outputs.version }}
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "Tag v$version already exists."
+            echo "::set-output name=tag_exists::true"
+          else
+            echo "Tag v$version does not exist."
+            echo "::set-output name=tag_exists::false"
+          fi
+
+      - name: Create Tag
+        if: steps.check_tag.outputs.tag_exists == 'false'
+        run: |
+          version=${{ steps.get_version.outputs.version }}
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag -a "v$version" -m "Release version $version"
+          git push origin "v$version"
+
   build:
+    needs: check-version-and-tag
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -94,9 +128,10 @@ jobs:
 
       - name: Verify Created Tag
         run: |
-          echo "Verifying tag ${{ github.ref }}"
-          if ! git tag -l | grep -q "${{ github.ref }}"; then
-            echo "Error: Tag ${{ github.ref }} not found locally."
+          version=$(jq -r '.version' package.json)
+          echo "Verifying tag v$version"
+          if ! git tag -l | grep -q "v$version"; then
+            echo "Error: Tag v$version not found locally."
             exit 1
           fi
 
@@ -129,7 +164,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ steps.get_version.outputs.version }}
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
