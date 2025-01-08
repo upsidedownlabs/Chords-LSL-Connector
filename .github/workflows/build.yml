@@ -135,14 +135,15 @@ jobs:
         with:
           name: tauri-app-linux
 
-      # Create GitHub Release
+      # Create GitHub Release with only artifacts
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: |
-            tauri-app-macos/**/*,
-            tauri-app-windows/**/*,
-            tauri-app-linux/**/*
+            tauri-app-macos/**/*\n
+            tauri-app-windows/**/*\n
+            tauri-app-linux/**/*\n
+          draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
