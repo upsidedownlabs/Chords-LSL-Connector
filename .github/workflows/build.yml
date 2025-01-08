@@ -38,11 +38,13 @@ jobs:
         run: |
           npm install
           npm install tailwindcss-animate
+
       - name: Install GTK and Build Tools (Ubuntu only)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev build-essential pkg-config
+
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
 
@@ -105,12 +107,12 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: tauri-app
+          name: tauri-app 
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
-          files: src-tauri/target/release/bundle/**/*
+          files: tauri-app/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
