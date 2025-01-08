@@ -61,6 +61,8 @@ jobs:
   create-tag:
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -80,6 +82,7 @@ jobs:
           # Create and push the tag
           git tag -a "$TAG_NAME" -m "Automated release tag"
           git push origin "$TAG_NAME"
+          echo "::set-output name=TAG_NAME::$TAG_NAME"
 
   release:
     needs: create-tag
@@ -93,9 +96,9 @@ jobs:
 
       - name: Verify Created Tag
         run: |
-          echo "Verifying tag ${{ env.TAG_NAME }}"
-          if ! git tag -l | grep -q "${{ env.TAG_NAME }}"; then
-            echo "Error: Tag ${{ env.TAG_NAME }} not found locally."
+          echo "Verifying tag ${{ needs.create-tag.outputs.tag_name }}"
+          if ! git tag -l | grep -q "${{ needs.create-tag.outputs.tag_name }}"; then
+            echo "Error: Tag ${{ needs.create-tag.outputs.tag_name }} not found locally."
             exit 1
           fi
 
@@ -107,7 +110,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.TAG_NAME }}
+          tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: src-tauri/target/release/bundle/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
