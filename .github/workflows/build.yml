@@ -110,7 +110,7 @@ jobs:
           name: tauri-app 
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/download-artifact@v3
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: tauri-app/**/*
