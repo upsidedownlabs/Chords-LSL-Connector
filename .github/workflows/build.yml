@@ -55,21 +55,21 @@ jobs:
 
       # Upload platform-specific artifacts
       - name: Upload Artifact for macOS
-        if: runner.os == 'macos-latest'
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-macos
           path: src-tauri/target/release/bundle/macos/**
 
       - name: Upload Artifact for Windows
-        if: runner.os == 'windows-latest'
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/windows/**
 
       - name: Upload Artifact for Linux
-        if: runner.os == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-linux
