@@ -117,7 +117,7 @@ jobs:
           path: src-tauri/target/release/bundle/rpm
 
   release:
-    needs: build
+    needs: [build, check-version-and-tag]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -128,7 +128,7 @@ jobs:
 
       - name: Verify Created Tag
         run: |
-          version=$(jq -r '.version' package.json)
+          version="v$(jq -r '.version' package.json)"
           echo "Verifying tag $version"
           if ! git tag -l | grep -q "$version"; then
             echo "Error: Tag $version not found locally."
@@ -164,7 +164,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ steps.get_version.outputs.version }}"
+          tag_name: "v${{ needs.check-version-and-tag.outputs.get_version.version }}"
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
