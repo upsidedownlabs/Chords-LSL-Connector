@@ -137,7 +137,7 @@ jobs:
 
       # Create GitHub Release with only artifacts
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: actions/upload-artifact@v3
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: |
