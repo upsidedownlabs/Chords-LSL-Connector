@@ -38,13 +38,11 @@ jobs:
         run: |
           npm install
           npm install tailwindcss-animate
-
       - name: Install GTK and Build Tools (Ubuntu only)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev build-essential pkg-config
-
       - name: Install Tauri CLI (locally)
         run: npm install @tauri-apps/cli
 
@@ -74,22 +72,14 @@ jobs:
           echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-
           # Delete the tag locally and remotely if it exists
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
             echo "Tag $TAG_NAME already exists. Overwriting it."
             git push origin --delete "$TAG_NAME"
           fi
-
           # Create and push the tag
           git tag -a "$TAG_NAME" -m "Automated release tag"
           git push origin "$TAG_NAME"
-
-          # Verify the tag exists on the remote
-          if ! git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
-            echo "Error: Tag $TAG_NAME was not pushed successfully."
-            exit 1
-          fi
 
   release:
     needs: create-tag
@@ -97,6 +87,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+
+      - name: Fetch All Tags
+        run: git fetch --tags
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
@@ -106,6 +99,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ env.TAG_NAME }}
           files: src-tauri/target/release/bundle/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
