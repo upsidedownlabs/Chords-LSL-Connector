@@ -1,0 +1,149 @@
+name: Build and Release Tauri App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-22.04]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Debug the runner OS
+        run: echo "Running on ${{ runner.os }}"
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install tailwindcss-animate
+
+      - name: Install GTK and Build Tools (Ubuntu only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev build-essential pkg-config
+
+      - name: Install Tauri CLI (locally)
+        run: npm install @tauri-apps/cli
+
+      - name: Clean npm cache
+        run: npm cache clean --force
+
+      - name: Build Tauri App
+        run: npx tauri build
+
+      # Upload platform-specific artifacts
+      - name: Upload Artifact for macOS
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-macos
+          path: src-tauri/target/release/bundle/**
+
+      - name: Upload Artifact for Windows
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-windows
+          path: src-tauri/target/release/bundle/**
+
+      - name: Upload Artifact for Linux
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-linux
+          path: src-tauri/target/release/bundle/**
+
+  create-tag:
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Create Git Tag
+        id: create_tag
+        run: |
+          TAG_NAME="v$(date +'%Y.%m.%d')"
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          # Delete the tag locally and remotely if it exists
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
+            echo "Tag $TAG_NAME already exists. Overwriting it."
+            git push origin --delete "$TAG_NAME"
+          fi
+          # Create and push the tag
+          git tag -a "$TAG_NAME" -m "Automated release tag"
+          git push origin "$TAG_NAME"
+          echo "::set-output name=TAG_NAME::$TAG_NAME"
+
+  release:
+    needs: create-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Fetch All Tags
+        run: git fetch --tags
+
+      - name: Verify Created Tag
+        run: |
+          echo "Verifying tag ${{ needs.create-tag.outputs.tag_name }}"
+          if ! git tag -l | grep -q "${{ needs.create-tag.outputs.tag_name }}"; then
+            echo "Error: Tag ${{ needs.create-tag.outputs.tag_name }} not found locally."
+            exit 1
+          fi
+
+      # Download platform-specific artifacts
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tauri-app-macos
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tauri-app-windows
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tauri-app-linux
+
+      # Create GitHub Release with only artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.create-tag.outputs.tag_name }}
+          files: |
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-macos
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-windows
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-linux
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

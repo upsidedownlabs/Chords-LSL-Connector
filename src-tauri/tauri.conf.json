@@ -25,7 +25,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "deb",   
+      "msi",    
+      "dmg",   
+      "rpm"   
+    ],
     "icon": [
       "icons/chords-logo.png",
       "icons/Chords-logo-128px.ico"
