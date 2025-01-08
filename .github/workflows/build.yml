@@ -164,7 +164,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ needs.check-version-and-tag.outputs.get_version.version }}"
+          tag_name: "v${{ needs.check-version-and-tag.get_version.outputs.version }}"
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
