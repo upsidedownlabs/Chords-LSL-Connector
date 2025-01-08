@@ -137,13 +137,13 @@ jobs:
 
       # Create GitHub Release with only artifacts
       - name: Create Release
-        uses: actions/upload-artifact@v3
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.create-tag.outputs.tag_name }}
           files: |
-            tauri-app-macos
-            tauri-app-windows
-            tauri-app-linux
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-macos
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-windows
+            /home/runner/work/Chords-LSL-Connector/Chords-LSL-Connector/tauri-app-linux
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
