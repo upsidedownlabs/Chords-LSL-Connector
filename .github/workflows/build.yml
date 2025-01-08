@@ -91,6 +91,14 @@ jobs:
       - name: Fetch All Tags
         run: git fetch --tags
 
+      - name: Verify Created Tag
+        run: |
+          echo "Verifying tag ${{ env.TAG_NAME }}"
+          if ! git tag -l | grep -q "${{ env.TAG_NAME }}"; then
+            echo "Error: Tag ${{ env.TAG_NAME }} not found locally."
+            exit 1
+          fi
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
