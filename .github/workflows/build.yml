@@ -71,14 +71,19 @@ jobs:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/msi/*.msi
 
-      - name: Upload Artifact for Linux
+      - name: Upload Artifact for Linux (deb)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v3
         with:
-          name: tauri-app-linux
-          path: |
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/rpm/*.rpm
+          name: tauri-app-linux-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+
+      - name: Upload Artifact for Linux (rpm)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-linux-rpm
+          path: src-tauri/target/release/bundle/rpm/*.rpm
 
   create-tag:
     needs: build
@@ -137,11 +142,17 @@ jobs:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/msi
 
-      - name: Download Linux Artifact
+      - name: Download Linux Artifact (deb)
         uses: actions/download-artifact@v3
         with:
-          name: tauri-app-linux
-          path: src-tauri/target/release/bundle
+          name: tauri-app-linux-deb
+          path: src-tauri/target/release/bundle/deb
+
+      - name: Download Linux Artifact (rpm)
+        uses: actions/download-artifact@v3
+        with:
+          name: tauri-app-linux-rpm
+          path: src-tauri/target/release/bundle/rpm
 
       # Create GitHub Release with only artifacts
       - name: Create Release
