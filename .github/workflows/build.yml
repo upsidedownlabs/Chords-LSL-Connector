@@ -59,21 +59,21 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-macos
-          path: src-tauri/target/release/bundle/macos/**
+          path: src-tauri/target/release/bundle/**
 
       - name: Upload Artifact for Windows
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-windows
-          path: src-tauri/target/release/bundle/windows/**
+          path: src-tauri/target/release/bundle/**
 
       - name: Upload Artifact for Linux
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-linux
-          path: src-tauri/target/release/bundle/linux/**
+          path: src-tauri/target/release/bundle/**
 
   create-tag:
     needs: build
