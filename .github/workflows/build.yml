@@ -15,13 +15,13 @@ jobs:
       - name: Get Version from package.json
         id: get_version
         run: |
-          version=$(jq -r '.version' package.json)
+          version="v$(jq -r '.version' package.json)"
           echo "::set-output name=version::$version"
 
       - name: Check if Tag Exists
         id: check_tag
         run: |
-          version="v${{ steps.get_version.outputs.version }}"
+          version="${{ steps.get_version.outputs.version }}"
           if git rev-parse "$version" >/dev/null 2>&1; then
             echo "Tag $version already exists."
             echo "::set-output name=tag_exists::true"
@@ -33,7 +33,7 @@ jobs:
       - name: Create Tag
         if: steps.check_tag.outputs.tag_exists == 'false'
         run: |
-          version="v${{ steps.get_version.outputs.version }}"
+          version="${{ steps.get_version.outputs.version }}"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git tag -a "$version" -m "Release version $version"
@@ -127,8 +127,10 @@ jobs:
         run: git fetch --tags
 
       - name: Verify Created Tag
+        id: verified_version
         run: |
           version="v$(jq -r '.version' package.json)"
+          echo "::set-output name=version::$version"
           echo "Verifying tag $version"
           if ! git tag -l | grep -q "$version"; then
             echo "Error: Tag $version not found locally."
@@ -164,7 +166,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ needs.check-version-and-tag.get_version.outputs.version }}"
+          tag_name: "${{ steps.verified_version.outputs.version }}"
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
