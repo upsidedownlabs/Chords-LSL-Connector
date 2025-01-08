@@ -54,11 +54,26 @@ jobs:
       - name: Build Tauri App
         run: npx tauri build
 
-      - name: Upload Artifact
+      - name: Upload Build Artifacts for macOS
+        if: runner.os == 'macos-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: tauri-app
-          path: src-tauri/target/release/bundle/
+          name: tauri-app-macos
+          path: src-tauri/target/release/bundle/macos/**
+
+      - name: Upload Build Artifacts for Windows
+        if: runner.os == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-windows
+          path: src-tauri/target/release/bundle/windows/**
+
+      - name: Upload Build Artifacts for Linux
+        if: runner.os == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tauri-app-linux
+          path: src-tauri/target/release/bundle/linux/**
 
   create-tag:
     needs: build
@@ -104,15 +119,27 @@ jobs:
             exit 1
           fi
 
-      - name: Download Build Artifacts
+      - name: Download Build Artifacts for macOS
         uses: actions/download-artifact@v3
         with:
-          name: tauri-app 
+          name: tauri-app-macos
 
-      - name: Create Release
+      - name: Download Build Artifacts for Windows
         uses: actions/download-artifact@v3
         with:
-          tag_name: ${{ needs.create-tag.outputs.tag_name }}
-          files: tauri-app/**/*
+          name: tauri-app-windows
+
+      - name: Download Build Artifacts for Linux
+        uses: actions/download-artifact@v3
+        with:
+          name: tauri-app-linux
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            tauri-app-macos/**
+            tauri-app-windows/**
+            tauri-app-linux/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
