@@ -2,11 +2,8 @@ name: Build and Release Tauri App
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -83,36 +80,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-linux-rpm
-          path: src-tauri/target/release/bundle/rpm/*.rpm
-
-  create-tag:
-    needs: build
-    runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Create Git Tag
-        id: create_tag
-        run: |
-          TAG_NAME="v$(date +'%Y.%m.%d')"
-          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          # Delete the tag locally and remotely if it exists
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
-            echo "Tag $TAG_NAME already exists. Overwriting it."
-            git push origin --delete "$TAG_NAME"
-          fi
-          # Create and push the tag
-          git tag -a "$TAG_NAME" -m "Automated release tag"
-          git push origin "$TAG_NAME"
-          echo "::set-output name=TAG_NAME::$TAG_NAME"
+          path: src-tauri/target/release/bundle/rpm
 
   release:
-    needs: create-tag
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -123,9 +94,9 @@ jobs:
 
       - name: Verify Created Tag
         run: |
-          echo "Verifying tag ${{ needs.create-tag.outputs.tag_name }}"
-          if ! git tag -l | grep -q "${{ needs.create-tag.outputs.tag_name }}"; then
-            echo "Error: Tag ${{ needs.create-tag.outputs.tag_name }} not found locally."
+          echo "Verifying tag ${{ github.ref }}"
+          if ! git tag -l | grep -q "${{ github.ref }}"; then
+            echo "Error: Tag ${{ github.ref }} not found locally."
             exit 1
           fi
 
@@ -158,7 +129,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.create-tag.outputs.tag_name }}
+          tag_name: ${{ github.ref }}
           files: |
             src-tauri/target/release/bundle/dmg/*.dmg
             src-tauri/target/release/bundle/msi/*.msi
