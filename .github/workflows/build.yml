@@ -14,97 +14,39 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-22.04]
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Debug the runner OS
-        run: echo "Running on ${{ runner.os }}"
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Install Dependencies
-        run: |
-          npm install
-          npm install tailwindcss-animate
-
-      - name: Install GTK and Build Tools (Ubuntu only)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev build-essential pkg-config
-
-      - name: Install Tauri CLI (locally)
-        run: npm install @tauri-apps/cli
-
-      - name: Clean npm cache
-        run: npm cache clean --force
+      # ... Other steps
 
       - name: Build Tauri App
         run: npx tauri build
 
-      - name: Upload Build Artifacts for macOS
+      # Upload artifacts with platform-specific names
+      - name: Upload Artifact for macOS
         if: runner.os == 'macos-latest'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-macos
           path: src-tauri/target/release/bundle/macos/**
 
-      - name: Upload Build Artifacts for Windows
+      - name: Upload Artifact for Windows
         if: runner.os == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/windows/**
 
-      - name: Upload Build Artifacts for Linux
+      - name: Upload Artifact for Linux
         if: runner.os == 'ubuntu-22.04'
         uses: actions/upload-artifact@v3
         with:
           name: tauri-app-linux
           path: src-tauri/target/release/bundle/linux/**
 
-  create-tag:
+  release:
     needs: build
     runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Create Git Tag
-        id: create_tag
-        run: |
-          TAG_NAME="v$(date +'%Y.%m.%d')"
-          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          # Delete the tag locally and remotely if it exists
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
-            echo "Tag $TAG_NAME already exists. Overwriting it."
-            git push origin --delete "$TAG_NAME"
-          fi
-          # Create and push the tag
-          git tag -a "$TAG_NAME" -m "Automated release tag"
-          git push origin "$TAG_NAME"
-          echo "::set-output name=TAG_NAME::$TAG_NAME"
-
-  release:
-    needs: create-tag
-    runs-on: ubuntu-latest
-    steps:
+      # Checkout code and fetch tags
       - name: Checkout Code
         uses: actions/checkout@v3
 
@@ -119,27 +61,26 @@ jobs:
             exit 1
           fi
 
-      - name: Download Build Artifacts for macOS
+      # Download platform-specific artifacts
+      - name: Download macOS Artifact
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-macos
 
-      - name: Download Build Artifacts for Windows
+      - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-windows
 
-      - name: Download Build Artifacts for Linux
+      - name: Download Linux Artifact
         uses: actions/download-artifact@v3
         with:
           name: tauri-app-linux
 
-      - name: Create GitHub Release
+      # Create Release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            tauri-app-macos/**
-            tauri-app-windows/**
-            tauri-app-linux/**
+          files: tauri-app-macos/**/*, tauri-app-windows/**/*, tauri-app-linux/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
