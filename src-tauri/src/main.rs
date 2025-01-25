@@ -31,7 +31,7 @@ fn detect_arduino() -> Result<String, String> {
             let port_name = port_info.port_name;
             println!("Attempting to connect to port: {}", port_name);
 
-            if port_name.contains("BLTH") || port_name.contains("Bluetooth"){
+            if port_name.contains("BLTH") || port_name.contains("Bluetooth")||port_name.contains("console"){
                 continue;
             }
             if let serialport::SerialPortType::UsbPort(info) = port_info.port_type {
