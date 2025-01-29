@@ -95,8 +95,12 @@ jobs:
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
         run: |
           xcrun altool --notarize-app \
+<<<<<<< HEAD
             --primary-bundle-id "com.example.app" \ariozation
             
+=======
+            --primary-bundle-id "com.example.app" \
+>>>>>>> cf37a2dd533d8adde55bab3538dc9cacee41e08c
             --username "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --file src-tauri/target/release/bundle/dmg/*.dmg
