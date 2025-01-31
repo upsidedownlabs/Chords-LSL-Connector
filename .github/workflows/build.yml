@@ -90,28 +90,32 @@ jobs:
       # Upload platform-specific artifacts
       - name: Upload Artifact for macOS
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
+
         with:
           name: tauri-app-macos
           path: src-tauri/target/release/bundle/dmg/*.dmg
 
       - name: Upload Artifact for Windows
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
+
         with:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/msi/*.msi
 
       - name: Upload Artifact for Linux (deb)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
+
         with:
           name: tauri-app-linux-deb
           path: src-tauri/target/release/bundle/deb/*.deb
 
       - name: Upload Artifact for Linux (rpm)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
+
         with:
           name: tauri-app-linux-rpm
           path: src-tauri/target/release/bundle/rpm
