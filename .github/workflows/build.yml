@@ -87,29 +87,6 @@ jobs:
       - name: Build Tauri App
         run: npx tauri build
 
-      # Signing and Notarization for macOS
-      - name: Sign and Notarize macOS App
-        if: runner.os == 'macOS'
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-        run: |
-          xcrun altool --notarize-app \
-<<<<<<< HEAD
-            --primary-bundle-id "com.example.app" \ariozation
-            
-=======
-            --primary-bundle-id "com.example.app" \
->>>>>>> cf37a2dd533d8adde55bab3538dc9cacee41e08c
-            --username "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --file src-tauri/target/release/bundle/dmg/*.dmg
-
-          echo "Waiting for notarization to complete..."
-          sleep 300
-
-          xcrun stapler staple src-tauri/target/release/bundle/dmg/*.dmg
-
       # Upload platform-specific artifacts
       - name: Upload Artifact for macOS
         if: runner.os == 'macOS'
