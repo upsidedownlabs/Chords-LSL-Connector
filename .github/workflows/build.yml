@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get Version from package.json
         id: get_version
@@ -47,7 +47,7 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-22.04]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Debug the runner OS
         run: echo "Running on ${{ runner.os }}"
@@ -60,7 +60,7 @@ jobs:
           override: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch All Tags
         run: git fetch --tags
@@ -139,25 +139,25 @@ jobs:
 
       # Download platform-specific artifacts
       - name: Download macOS Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tauri-app-macos
           path: src-tauri/target/release/bundle/dmg
 
       - name: Download Windows Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tauri-app-windows
           path: src-tauri/target/release/bundle/msi
 
       - name: Download Linux Artifact (deb)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tauri-app-linux-deb
           path: src-tauri/target/release/bundle/deb
 
       - name: Download Linux Artifact (rpm)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tauri-app-linux-rpm
           path: src-tauri/target/release/bundle/rpm
