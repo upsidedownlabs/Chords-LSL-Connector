@@ -67,7 +67,6 @@ fn detect_arduino() -> Result<String, String> {
                             Ok(size) => {
                                 if size > 0 {
                                     response.push_str(&String::from_utf8_lossy(&buffer[..size]));
-
                                     if response.contains("UNO-R4")
                                     || response.contains("UNO-R3")
                                     || response.contains("GIGA-R1")
@@ -160,7 +159,7 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
                 Ok(mut port) => {
                     let start_command = b"START\r\n";
 
-                    for i in 1..=5 {
+                    for i in 1..=3 {
                         if let Err(e) = port.write_all(start_command) {
                         } 
                         println!("Connected to device on port: {}", port_name);
