@@ -31,28 +31,17 @@ fn detect_arduino() -> Result<String, String> {
             let port_name = port_info.port_name;
             println!("Attempting to connect to port: {}", port_name);
 
-            if port_name.contains("BLTH") || port_name.contains("Bluetooth"){
+            if port_name.contains("BLTH") || port_name.contains("Bluetooth")||port_name.contains("console"){
                 continue;
             }
             if let serialport::SerialPortType::UsbPort(info) = port_info.port_type {
-                // Check if the VID and PID match your Arduino device
-                if info.vid == 6790 {//MAKER UNO
+                // Check if the VID matches your Arduino device
+                if info.vid == 6790 || matches!(info.pid, 67 | 579 | 29987 | 66 | 24577) {
                     *BAUDRATE.lock().unwrap() = 115200; // Change the baud rate dynamically
                     *SAMPLE_RATE.lock().unwrap() = 250.0; 
-                } 
-                if info.pid == 67 {//Arduino UNO R3               
-                    *SAMPLE_RATE.lock().unwrap() = 250.0; 
-                } 
-                if info.pid == 579
-                {//Arduino genuino R3               
-                    *SAMPLE_RATE.lock().unwrap() = 250.0; 
-                } 
-                if info.vid == 11914 {//Resberry pi pico
-                    *PACKET_SIZE.lock().unwrap() = 10; // Change the baud rate dynamically
-                    *CHANNELS.lock().unwrap() = 3; // Change the baud rate dynamically
-                } 
-         
+                }
             }
+            
 
             match serialport::new(&port_name, *BAUDRATE.lock().unwrap())
                 .timeout(Duration::from_secs(3))
@@ -78,23 +67,38 @@ fn detect_arduino() -> Result<String, String> {
                             Ok(size) => {
                                 if size > 0 {
                                     response.push_str(&String::from_utf8_lossy(&buffer[..size]));
-                                    println!("Partial response: {}", response);
-
                                     if response.contains("UNO-R4")
-                                        || response.contains("UNO-R3")
-                                        || response.contains("GIGA-R1")
-                                        || response.contains("RPI-PICO-RP2040")
-                                        || response.contains("UNO-CLONE")
-                                        || response.contains("NANO-CLONE")
+                                    || response.contains("UNO-R3")
+                                    || response.contains("GIGA-R1")
+                                    || response.contains("RPI-PICO-RP2040")
+                                    || response.contains("UNO-CLONE")
+                                    || response.contains("NANO-CLONE")
+                                    || response.contains("MEGA-2560-R3")
+                                    || response.contains("MEGA-2560-CLONE")
+                                    || response.contains("GENUINO-UNO")
+                                    || response.contains("NANO-CLASSIC")
+                                    || response.contains("STM32G4-CORE-BOARD")
+                                    || response.contains("STM32F4-BLACK-PILL")
+                                {
+                                    if response.contains("NANO-CLONE")|| response.contains("NANO-CLASSIC")|| response.contains("STM32F4-BLACK-PILL")
                                     {
-                                        if response.contains("NANO-CLONE"){
-                                            *PACKET_SIZE.lock().unwrap() = 20; // Change the baud rate dynamically
-                                            *CHANNELS.lock().unwrap() = 8; // Change the baud rate dynamically
-                                        }
-                                        println!("Valid device found on port: {}", port_name);
-                                        drop(port);
-                                        return Ok(port_name); // Return the found port name directly
+                                        *PACKET_SIZE.lock().unwrap() = 20; // Change the baud rate dynamically
+                                        *CHANNELS.lock().unwrap() = 8; // Change the baud rate dynamically
                                     }
+                                    if response.contains("MEGA-2560-R3")|| response.contains("MEGA-2560-CLONE")|| response.contains("STM32G4-CORE-BOARD")
+                                    {
+                                        *PACKET_SIZE.lock().unwrap() = 36; // Change the baud rate dynamically
+                                        *CHANNELS.lock().unwrap() = 16; // Change the baud rate dynamically
+                                    }
+                                    if response.contains("RPI-PICO-RP2040")
+                                    {
+                                        *PACKET_SIZE.lock().unwrap() = 10; // Change the baud rate dynamically
+                                        *CHANNELS.lock().unwrap() = 3; // Change the baud rate dynamically
+                                    }
+                                    println!("Valid device found on port: {}", port_name);
+                                    drop(port);
+                                    return Ok(port_name); // Return the found port name directly
+                                }
                                 }
                             }
                             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
@@ -153,13 +157,13 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
                 .open()
             {
                 Ok(mut port) => {
-                    println!("Connected to device on port: {}", port_name);
                     let start_command = b"START\r\n";
 
-                    for i in 1..=5 {
+                    for i in 1..=3 {
                         if let Err(e) = port.write_all(start_command) {
                         } 
-                        thread::sleep(Duration::from_millis(400));
+                        println!("Connected to device on port: {}", port_name);
+                        thread::sleep(Duration::from_millis(1000));
                     }
 
                     println!("Finished sending commands.");
