@@ -2,7 +2,7 @@
 # Chords-LSL-Connector
 Rust based LSL connector for device running Chords Firmware.
 
-# Installation Instructions
+## Installation Instructions
 ### macOS  
 If you see an error saying the app is "damaged or corrupted," it is likely due to macOS blocking unsigned apps. To bypass this:
 
