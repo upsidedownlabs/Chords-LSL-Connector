@@ -80,6 +80,7 @@ fn detect_arduino() -> Result<String, String> {
                                     || response.contains("NANO-CLASSIC")
                                     || response.contains("STM32G4-CORE-BOARD")
                                     || response.contains("STM32F4-BLACK-PILL")
+                                    || response.contains("NPG-LITE")
                                 {
                                     if response.contains("NANO-CLONE")|| response.contains("NANO-CLASSIC")|| response.contains("STM32F4-BLACK-PILL")
                                     {
@@ -91,7 +92,7 @@ fn detect_arduino() -> Result<String, String> {
                                         *PACKET_SIZE.lock().unwrap() = 36; // Change the baud rate dynamically
                                         *CHANNELS.lock().unwrap() = 16; // Change the baud rate dynamically
                                     }
-                                    if response.contains("RPI-PICO-RP2040")
+                                    if response.contains("RPI-PICO-RP2040")|| response.contains("NPG-LITE")
                                     {
                                         *PACKET_SIZE.lock().unwrap() = 10; // Change the baud rate dynamically
                                         *CHANNELS.lock().unwrap() = 3; // Change the baud rate dynamically
@@ -277,7 +278,7 @@ fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
 
 #[tauri::command]
 async fn start_wifistreaming() {
-    let stream_name = "ORIC";
+    let stream_name = "NPG-Lite";
     let info = StreamInfo::new(stream_name, "EXG", 3, 500.0, ChannelFormat::Float32, "uid007").unwrap();
     let outlet = StreamOutlet::new(&info, 0, 360).unwrap();
     
