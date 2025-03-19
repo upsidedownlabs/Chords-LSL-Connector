@@ -7,6 +7,10 @@ use serde_json::json; // Add this import at the top
 use tokio::sync::mpsc;
 use lsl::Pushable;  // Add the necessary imports
 use lsl::StreamOutlet;
+use lsl::{StreamInfo, ChannelFormat};
+use tungstenite::connect;
+use url::Url;
+use tungstenite::protocol::Message;
 
 
 use lazy_static::lazy_static;
@@ -17,9 +21,6 @@ lazy_static! {
     static ref CHANNELS: Arc<Mutex<usize>> = Arc::new(Mutex::new(6)); // Default baud rate
     static ref SAMPLE_RATE: Arc<Mutex<f64>> = Arc::new(Mutex::new(500.0)); // Default baud rate
 }
-
-
-
 
 #[tauri::command]
 fn detect_arduino() -> Result<String, String> {
@@ -79,6 +80,7 @@ fn detect_arduino() -> Result<String, String> {
                                     || response.contains("NANO-CLASSIC")
                                     || response.contains("STM32G4-CORE-BOARD")
                                     || response.contains("STM32F4-BLACK-PILL")
+                                    || response.contains("NPG-LITE")
                                 {
                                     if response.contains("NANO-CLONE")|| response.contains("NANO-CLASSIC")|| response.contains("STM32F4-BLACK-PILL")
                                     {
@@ -90,7 +92,7 @@ fn detect_arduino() -> Result<String, String> {
                                         *PACKET_SIZE.lock().unwrap() = 36; // Change the baud rate dynamically
                                         *CHANNELS.lock().unwrap() = 16; // Change the baud rate dynamically
                                     }
-                                    if response.contains("RPI-PICO-RP2040")
+                                    if response.contains("RPI-PICO-RP2040")|| response.contains("NPG-LITE")
                                     {
                                         *PACKET_SIZE.lock().unwrap() = 10; // Change the baud rate dynamically
                                         *CHANNELS.lock().unwrap() = 3; // Change the baud rate dynamically
@@ -270,13 +272,16 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
     
 }
 
+fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
+    data_size as f64 / elapsed_time
+}
 
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             detect_arduino,
-            start_streaming
+            start_streaming,
         ])
         .setup(|_app| {
             Ok(())

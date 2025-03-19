@@ -1,6 +1,6 @@
 [package]
 name = "Chords-Lsl-Connector"
-version = "0.1.1"
+version = "0.1.2"
 description = "Rust based LSL connector for device running Chords Firmware."
 authors = ["Aman Maheshwari", "Deepak Khatri"]
 license = "GPL V3"
@@ -17,6 +17,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.2", features = [] }
 
 [dependencies]
+tungstenite = "0.20"
+url = "2.5"
+chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
