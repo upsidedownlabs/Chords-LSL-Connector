@@ -29,17 +29,6 @@ const App = () => {
   };
 
 
-  const ConnectwifiDevice = async () => {
-    try {
-      isProcessing.current = true;
-      setActiveButton("wifi");
-      setDeviceConnected(true);
-      await core.invoke("start_wifistreaming");
-
-    } catch (error) {
-      console.error('Failed to connect to device:', error);
-    }
-  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-200">
@@ -59,25 +48,6 @@ const App = () => {
             size={40}
             className={`transition-colors duration-300 ${
               deviceConnected && activeButton === "serial" ? "text-green-500" : "text-gray-500"
-            }`}
-          />
-        </div>
-
-        {/* Second Button */}
-        <div
-          onClick={activeButton === null ? ConnectwifiDevice : undefined}
-          onMouseDown={activeButton === null ? () => (isProcessing.current = true) : undefined}
-          className={`
-            flex items-center justify-center w-28 h-28 rounded-full cursor-pointer bg-gray-200 shadow-[8px_8px_16px_#bebebe,-8px_-8px_16px_#ffffff] 
-            transition-all duration-600 relative ${activeButton && activeButton !== "serial" ?
-               'animate-[rotateShadow_1.5s_linear_infinite]' : ''}
-            ${activeButton && activeButton !== "wifi" ? "opacity-50 pointer-events-none" : ""}
-          `}
-        >
-          <Wifi
-            size={40}
-            className={`transition-colors duration-300 ${
-              deviceConnected && activeButton === "wifi" ? "text-green-500" : "text-gray-500"
             }`}
           />
         </div>

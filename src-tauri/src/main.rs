@@ -276,96 +276,12 @@ fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
     data_size as f64 / elapsed_time
 }
 
-#[tauri::command]
-async fn start_wifistreaming() {
-    let stream_name = "NPG-Lite";
-    let info = StreamInfo::new(stream_name, "EXG", 3, 500.0, ChannelFormat::Float32, "uid007").unwrap();
-    let outlet = StreamOutlet::new(&info, 0, 360).unwrap();
-    
-    let ws_url = "ws://multi-emg.local:81";
-    let (mut socket, _) = connect(Url::parse(ws_url).unwrap()).expect("WebSocket connection failed");
-    println!("{} WebSocket connected!", stream_name);
-
-    
-    let mut block_size = 13;
-    let mut packet_size = 0;
-    let mut data_size = 0;
-    let mut sample_size = 0;
-    let mut previous_sample_number: Option<u8> = None;
-    let mut previous_data = vec![];
-    let start_time = Instant::now();
-
-    loop {
-        match socket.read_message() {
-            Ok(Message::Binary(data)) => {
-                data_size += data.len();
-                let elapsed_time = start_time.elapsed().as_secs_f64();
-    
-                if elapsed_time >= 1.0 {
-                    let samples_per_second = calculate_rate(sample_size, elapsed_time);
-                    let refresh_rate = calculate_rate(packet_size, elapsed_time);
-                    let bytes_per_second = calculate_rate(data_size, elapsed_time);
-                    println!(
-                        "{} FPS : {} SPS : {} BPS",
-                        refresh_rate.ceil(),
-                        samples_per_second.ceil(),
-                        bytes_per_second.ceil()
-                    );
-                    packet_size = 0;
-                    sample_size = 0;
-                    data_size = 0;
-                }
-    
-                packet_size += 1;
-                println!("Packet size: {} Bytes", data.len());
-    
-                for block_location in (0..data.len()).step_by(block_size) {
-                    sample_size += 1;
-                    let block = &data[block_location..block_location + block_size];
-                    let sample_number = block[0];
-                    let mut channel_data = vec![];
-    
-                    for channel in 0..3 {
-                        let offset = 1 + (channel * 2);
-                        let sample = i16::from_be_bytes([block[offset], block[offset + 1]]);
-                        channel_data.push(sample as f32);
-                    }
-    
-                    if let Some(prev) = previous_sample_number {
-                        if sample_number.wrapping_sub(prev) > 1 {
-                            println!("Error: Sample Lost");
-                            break;
-                        } else if sample_number == prev {
-                            println!("Error: Duplicate Sample");
-                            break;
-                        }
-                    }
-                    previous_sample_number = Some(sample_number);
-                    previous_data = channel_data.clone();
-    
-                    println!("EEG Data: {} {:?}", sample_number, channel_data);
-                    outlet.push_sample(&channel_data).unwrap();
-                }
-            }
-            Ok(_) => {} // Ignore non-binary messages
-            Err(e) => {
-                eprintln!("WebSocket error: {:?}", e);
-                break;
-            }
-        }
-        thread::sleep(Duration::from_millis(1));
-    }
-    
-    
-}
-
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             detect_arduino,
             start_streaming,
-            start_wifistreaming,
         ])
         .setup(|_app| {
             Ok(())
