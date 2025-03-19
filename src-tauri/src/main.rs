@@ -8,9 +8,6 @@ use tokio::sync::mpsc;
 use lsl::Pushable;  // Add the necessary imports
 use lsl::StreamOutlet;
 use lsl::{StreamInfo, ChannelFormat};
-use tungstenite::connect;
-use url::Url;
-use tungstenite::protocol::Message;
 
 
 use lazy_static::lazy_static;
@@ -271,11 +268,6 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
     }
     
 }
-
-fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
-    data_size as f64 / elapsed_time
-}
-
 
 fn main() {
     tauri::Builder::default()
