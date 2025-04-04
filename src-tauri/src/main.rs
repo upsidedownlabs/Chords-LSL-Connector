@@ -17,7 +17,16 @@ use tauri::{self, AppHandle, Emitter}; // Import Emitter along with AppHandle
 use tokio::sync::mpsc;
 use tungstenite::connect;
 use tungstenite::protocol::Message;
+<<<<<<< HEAD
 use url::Url;
+=======
+
+use std::sync::atomic::{AtomicU8, Ordering};
+use btleplug::api::WriteType;
+use futures::StreamExt;  // Changed from futures_util to futures
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex};
+>>>>>>> 98cafaa (Implement BLE)
 lazy_static! {
     static ref BAUDRATE: Arc<Mutex<u32>> = Arc::new(Mutex::new(230400)); // Default baud rate
     static ref PACKET_SIZE: Arc<Mutex<usize>> = Arc::new(Mutex::new(16)); // Default baud rate
@@ -375,7 +384,45 @@ async fn start_wifistreaming(app_handle: AppHandle) {
     }
 }
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
+<<<<<<< HEAD
 use btleplug::platform::Manager as BtleManager;
+=======
+use btleplug::platform::Manager;
+use tokio::time;
+
+// #[tauri::command]
+// async fn scan_bluetooth_devices(app_handle: AppHandle) -> Result<(), String> {
+//     let manager = Manager::new().await.map_err(|e| e.to_string())?;
+//     let adapters = manager.adapters().await.map_err(|e| e.to_string())?;
+
+//     for adapter in adapters {
+//         adapter.start_scan(ScanFilter::default()).await.map_err(|e| e.to_string())?;
+//         time::sleep(Duration::from_secs(5)).await; // Wait for scan results
+
+//         let peripherals = adapter.peripherals().await.map_err(|e| e.to_string())?;
+//         let mut devices = Vec::new();
+
+//         for peripheral in peripherals {
+//             if let Some(properties) = peripheral.properties().await.unwrap() {
+//                 if let Some(local_name) = properties.local_name {
+//                     let device_info = serde_json::json!({
+//                         "name": local_name,
+//                         "id": peripheral.id().to_string()
+//                     });
+
+//                     devices.push(device_info);
+//                     println!("{:#?}", devices);
+//                 }
+//             }
+//         }
+
+//         // Emit the list of devices to the frontend
+//         app_handle.emit("bluetoothDevices", devices).map_err(|e| e.to_string())?;
+//     }
+//     Ok(())
+// }
+
+>>>>>>> 98cafaa (Implement BLE)
 
 // Thread-safe wrapper for StreamOutlet
 struct SafeOutlet(Option<StreamOutlet>);
@@ -418,7 +465,11 @@ fn close_ble_outlet() {
 }
 
 // Process BLE samples
+<<<<<<< HEAD
 fn process_ble_sample(sample: &[u8], app_handle: AppHandle) -> Result<Vec<f32>, String> {
+=======
+fn process_ble_sample(sample: &[u8]) -> Result<Vec<f32>, String> {
+>>>>>>> 98cafaa (Implement BLE)
     if sample.len() != SINGLE_SAMPLE_LEN {
         return Err("Invalid sample length".to_string());
     }
@@ -446,6 +497,7 @@ fn process_ble_sample(sample: &[u8], app_handle: AppHandle) -> Result<Vec<f32>, 
 
 #[tauri::command]
 async fn scan_ble_devices(app_handle: AppHandle) -> Result<(), String> {
+<<<<<<< HEAD
     let manager = BtleManager::new()
         .await
         .map_err(|e| format!("Manager creation failed: {}", e))?;
@@ -474,11 +526,34 @@ async fn scan_ble_devices(app_handle: AppHandle) -> Result<(), String> {
     let peripherals = adapter
         .peripherals()
         .await
+=======
+    let manager = Manager::new().await.map_err(|e| format!("Manager creation failed: {}", e))?;
+    
+    // Get the first adapter (you might want to handle multiple adapters differently)
+    let adapter = manager.adapters().await
+        .map_err(|e| format!("Failed to get adapters: {}", e))?
+        .into_iter()
+        .next()
+        .ok_or("No Bluetooth adapters found".to_string())?;
+
+    println!("Using adapter: {}", adapter.adapter_info().await.map_err(|e| e.to_string())?);
+
+    // Start scan with timeout
+    adapter.start_scan(ScanFilter::default()).await
+        .map_err(|e| format!("Failed to start scan: {}", e))?;
+    
+    println!("Scanning for BLE devices...");
+    tokio::time::sleep(Duration::from_secs(5)).await;
+
+    // Get peripherals
+    let peripherals = adapter.peripherals().await
+>>>>>>> 98cafaa (Implement BLE)
         .map_err(|e| format!("Failed to get peripherals: {}", e))?;
 
     if peripherals.is_empty() {
         println!("No BLE devices found");
         return Err("No BLE devices found".to_string());
+<<<<<<< HEAD
     }
 
     let mut devices = Vec::new();
@@ -508,14 +583,39 @@ async fn scan_ble_devices(app_handle: AppHandle) -> Result<(), String> {
 
     app_handle
         .emit("bleDevices", devices)
+=======
+    }
+
+    let mut devices = Vec::new();
+    for peripheral in peripherals {
+        match peripheral.properties().await {
+            Ok(Some(props)) => {
+                let name = props.local_name.unwrap_or_else(|| "Unknown".to_string());
+                println!("Found device: {} ({})", name, peripheral.id());
+                devices.push(json!({
+                    "name": name,
+                    "id": peripheral.id().to_string(),
+                    "rssi": props.rssi,
+                    "connected": peripheral.is_connected().await.unwrap_or(false)
+                }));
+            }
+            Ok(None) => println!("Device with no properties"),
+            Err(e) => println!("Error getting properties: {}", e),
+        }
+    }
+
+    app_handle.emit("bleDevices", devices)
+>>>>>>> 98cafaa (Implement BLE)
         .map_err(|e| format!("Failed to emit devices: {}", e))?;
 
     Ok(())
 }
-
 #[tauri::command]
 async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<String, String> {
+<<<<<<< HEAD
     println!("[CONNECT] Starting connection to device: {}", device_id);
+=======
+>>>>>>> 98cafaa (Implement BLE)
     close_ble_outlet();
 
     // 1. Initialize Bluetooth Manager
@@ -848,6 +948,7 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                     close_ble_outlet();
                 });
 
+<<<<<<< HEAD
                 return Ok(format!("Connected"));
             }
         }
@@ -888,12 +989,98 @@ fn cleanup_on_exit() {
     cleanup_resources();
 }
 // Modify the main function
+=======
+                return Ok(format!("Connected to BLE device {}", device_id));
+            }
+        }
+    }
+    Err("Failed to connect to BLE device".to_string())
+}
+
+#[tauri::command]
+async fn disconnect_from_ble(device_id: String) -> Result<String, String> {
+    let manager = Manager::new().await.map_err(|e| e.to_string())?;
+    let adapters = manager.adapters().await.map_err(|e| e.to_string())?;
+
+    for adapter in adapters {
+        let peripherals = adapter.peripherals().await.map_err(|e| e.to_string())?;
+        for peripheral in peripherals {
+            if peripheral.id().to_string() == device_id {
+                // Get characteristics once
+                let characteristics = peripheral.characteristics();
+                
+                // 1. First send stop command
+                if let Some(control_char) = characteristics.iter()
+                    .find(|c| c.uuid.to_string() == "0000ff01-0000-1000-8000-00805f9b34fb") 
+                {
+                    match peripheral.write(control_char, b"stop", WriteType::WithResponse).await {
+                        Ok(_) => log::info!("Stop command sent successfully"),
+                        Err(e) => log::warn!("Failed to send stop command: {}", e),
+                    }
+                }
+
+                // 2. Unsubscribe from notifications
+                if let Some(data_char) = characteristics.iter()
+                    .find(|c| c.uuid.to_string() == "beb5483e-36e1-4688-b7f5-ea07361b26a8") 
+                {
+                    let _ = peripheral.unsubscribe(data_char).await;
+                }
+
+                // 3. Disconnect
+                let disconnect_result = peripheral.disconnect().await;
+
+                // 4. Platform-specific unpairing
+                #[cfg(target_os = "linux")]
+                let unpair_result = std::process::Command::new("bluetoothctl")
+                    .args(&["remove", &device_id])
+                    .status();
+
+                #[cfg(target_os = "macos")]
+                let unpair_result = std::process::Command::new("blueutil")
+                    .args(&["--unpair", &device_id])
+                    .status();
+
+                #[cfg(target_os = "windows")]
+                let unpair_result = std::process::Command::new("powershell")
+                    .args(&["-Command", &format!("Remove-BluetoothDevice -DeviceId {}", device_id)])
+                    .status();
+
+                if let Err(e) = unpair_result {
+                    log::warn!("Failed to unpair device: {}", e);
+                }
+
+                // Cleanup
+                *BLE_CONNECTED.lock().unwrap() = false;
+                close_ble_outlet();
+
+                match disconnect_result {
+                    Ok(_) => return Ok(format!("Disconnected and unpaired BLE device {}", device_id)),
+                    Err(e) => return Err(format!("Disconnect failed: {}", e)),
+                }
+            }
+        }
+    }
+    
+    close_ble_outlet();
+    Err("BLE device not found".to_string())
+}
+
+#[tauri::command]
+fn cleanup_ble() {
+    close_ble_outlet();
+}
+
+>>>>>>> 98cafaa (Implement BLE)
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             detect_arduino,
             scan_ble_devices,
             connect_to_ble,
+<<<<<<< HEAD
+=======
+            disconnect_from_ble,
+>>>>>>> 98cafaa (Implement BLE)
             start_streaming,
             start_wifistreaming,
             cleanup_ble,

@@ -65,13 +65,21 @@ const App = () => {
     try {
       setScane(true);
       isProcessing.current = true;
+<<<<<<< HEAD
       await core.invoke("scan_ble_devices");
+=======
+      setActiveButton("bluetooth");
+      await core.invoke("scan_ble_devices");
+
+
+>>>>>>> 98cafaa (Implement BLE)
     } catch (error) {
       console.error("Failed to connect to device:", error);
     }
   };
 
   useEffect(() => {
+<<<<<<< HEAD
     listen('connection', (event) => {
       setStatus(event.payload as string);
     });
@@ -89,13 +97,45 @@ const App = () => {
     listen('samplelost', (event) => {
       setSamplelost(event.payload as number);
     });
+=======
+    listen('bleDevices', (event) => {
+      setDevices(event.payload as { name: string; id: string }[]);
+>>>>>>> 98cafaa (Implement BLE)
 
     listen('lsl', (event) => {
       setLSL(event.payload as string);
     });
   }, []);
 
+<<<<<<< HEAD
   
+=======
+  const connectToDevice = async () => {
+    if (!selectedDevice) return;
+    const response = await core.invoke<string>("connect_to_ble", { deviceId: selectedDevice });
+    setStatus(response);
+    setDeviceConnected(true);
+  };
+
+  const disconnectFromDevice = async () => {
+    if (!selectedDevice) return;
+    try {
+      const response = await core.invoke<string>("disconnect_from_ble", { deviceId: selectedDevice });
+      core.invoke('cleanup_ble')
+  .then(() => console.log('Bluetooth cleaned up'))
+  .catch(err => console.error('Cleanup failed:', err))
+      console.log(response);
+      setDeviceConnected(false);
+      setSelectedDevice(null);
+      setActiveButton(null);  
+      setStatus(response);
+    } catch (error) {
+      console.error("Failed to disconnect:", error);
+      setStatus("Failed to disconnect.");
+    }
+  };
+
+>>>>>>> 98cafaa (Implement BLE)
 
   return (
     <>
