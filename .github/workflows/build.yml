@@ -125,7 +125,6 @@ jobs:
           mkdir -p SignedApp  # Create SignedApp directory if it doesn't exist
           cp -R /Volumes/MyApp/*.app ./SignedApp
           hdiutil detach /Volumes/MyApp
-
       - name: Sign .app bundle
         if: runner.os == 'macOS'
         env:
@@ -147,7 +146,6 @@ jobs:
           npm install -g create-dmg
           mkdir -p rebuilt-dmg
           npx create-dmg SignedApp/*.app rebuilt-dmg --overwrite
-
       - name: Notarize macOS App
         if: runner.os == 'macOS'
         env:
