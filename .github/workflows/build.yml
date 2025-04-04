@@ -60,11 +60,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
       - name: Install Dependencies
         run: |
+<<<<<<< HEAD
           npm install
           npm install tailwindcss-animate
+=======
+            npm install next@15.2.4  # Explicitly install patched version
+            npm install
+            npm install tailwindcss-animate
+>>>>>>> 3e48180 (Implement bluetoooth connection)
       - name: Run npm audit
         run: npm audit --audit-level=high
 
