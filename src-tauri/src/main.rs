@@ -784,36 +784,72 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
     println!("[ERROR] Device not found after scanning all adapters");
     Err("Device not found".to_string())
 }
-
-fn cleanup_resources() {
-    println!("[CLEANUP] Performing final cleanup");
-    *BLE_CONNECTED.lock().unwrap() = false;
-    close_ble_outlet();
-}
 #[tauri::command]
-fn cleanup_ble() {
-    close_ble_outlet();
-}
-// Add this with your other lazy_static declarations
-lazy_static! {
-    // ... your existing static refs ...
-    static ref CONNECTED_PERIPHERAL: Arc<Mutex<Option<Peripheral>>> = Arc::new(Mutex::new(None));
-}
+async fn disconnect_from_ble(device_id: String) -> Result<String, String> {
+    let manager = Manager::new().await.map_err(|e| e.to_string())?;
+    let adapters = manager.adapters().await.map_err(|e| e.to_string())?;
 
-// Modify the cleanup_on_exit function
-fn cleanup_on_exit() {
-    println!("[CLEANUP] Application exiting - cleaning up BLE resources");
+    for adapter in adapters {
+        let peripherals = adapter.peripherals().await.map_err(|e| e.to_string())?;
+        for peripheral in peripherals {
+            if peripheral.id().to_string() == device_id {
+                // Get characteristics once
+                let characteristics = peripheral.characteristics();
+                
+                // 1. First send stop command
+                if let Some(control_char) = characteristics.iter()
+                    .find(|c| c.uuid.to_string() == "0000ff01-0000-1000-8000-00805f9b34fb") 
+                {
+                    match peripheral.write(control_char, b"stop", WriteType::WithResponse).await {
+                        Ok(_) => log::info!("Stop command sent successfully"),
+                        Err(e) => log::warn!("Failed to send stop command: {}", e),
+                    }
+                }
 
-    // Disconnect the peripheral if connected
-    if let Some(peripheral) = CONNECTED_PERIPHERAL.lock().unwrap().take() {
-        println!("[CLEANUP] Disconnecting peripheral...");
-        if let Err(e) = futures::executor::block_on(peripheral.disconnect()) {
-            println!("[WARN] Failed to disconnect peripheral: {}", e);
+                // 2. Unsubscribe from notifications
+                if let Some(data_char) = characteristics.iter()
+                    .find(|c| c.uuid.to_string() == "beb5483e-36e1-4688-b7f5-ea07361b26a8") 
+                {
+                    let _ = peripheral.unsubscribe(data_char).await;
+                }
+
+                // 3. Disconnect
+                let disconnect_result = peripheral.disconnect().await;
+
+                // 4. Platform-specific unpairing
+                #[cfg(target_os = "linux")]
+                let unpair_result = std::process::Command::new("bluetoothctl")
+                    .args(&["remove", &device_id])
+                    .status();
+
+                #[cfg(target_os = "macos")]
+                let unpair_result = std::process::Command::new("blueutil")
+                    .args(&["--unpair", &device_id])
+                    .status();
+
+                #[cfg(target_os = "windows")]
+                let unpair_result = std::process::Command::new("powershell")
+                    .args(&["-Command", &format!("Remove-BluetoothDevice -DeviceId {}", device_id)])
+                    .status();
+
+                if let Err(e) = unpair_result {
+                    log::warn!("Failed to unpair device: {}", e);
+                }
+
+                // Cleanup
+                *BLE_CONNECTED.lock().unwrap() = false;
+                close_ble_outlet();
+
+                match disconnect_result {
+                    Ok(_) => return Ok(format!("Disconnected and unpaired BLE device {}", device_id)),
+                    Err(e) => return Err(format!("Disconnect failed: {}", e)),
+                }
+            }
         }
     }
-
-    // Cleanup other resources
-    cleanup_resources();
+    
+    close_ble_outlet();
+    Err("BLE device not found".to_string())
 }
 // Modify the main function
 fn main() {

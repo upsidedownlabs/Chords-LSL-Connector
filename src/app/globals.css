@@ -4,16 +4,22 @@
 
 :root {
   --background: transparent;
+  --background: transparent;
   --foreground: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: transparent;
+    --background: transparent;
     --foreground: #ededed;
   }
 }
 
+html,
+body,
+#root {
+  background: transparent !important;
 html,
 body,
 #root {
@@ -25,7 +31,4 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
 }
