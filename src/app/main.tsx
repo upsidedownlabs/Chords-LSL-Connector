@@ -17,7 +17,6 @@ const App = () => {
   const [lsl, setLSL] = useState("");
 
   const isProcessing = useRef(false);
-  const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const appWindow = Window.getCurrent();
 
   const toggleAlwaysOnTop = async () => {
@@ -59,6 +58,7 @@ const App = () => {
     try {
       isProcessing.current = true;
       const portName = await core.invoke('detect_arduino') as string;
+      console.log(portName);
       portRef.current = portName;
       setDeviceConnected(true);
       await core.invoke('start_streaming', { portName: portRef.current, stream_name: "UDL" });
