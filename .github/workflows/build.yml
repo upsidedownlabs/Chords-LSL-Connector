@@ -131,19 +131,27 @@ jobs:
           cp -R /Volumes/MyApp/*.app ./SignedApp
           hdiutil detach /Volumes/MyApp
 
-      - name: Sign .app bundle
+      - name: Sign .app bundle (safe & fast)
         if: runner.os == 'macOS'
         env:
-          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+         MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
-          codesign --deep --force --verbose --options runtime \
-            --sign "${MACOS_SIGN_IDENTITY}" \
-            SignedApp/*.app
-          codesign --verify --deep --strict --verbose=2 SignedApp/*.app
-      - name: Verify SignedApp directory contents
-        if: runner.os == 'macOS'
-        run: |
-          ls -l SignedApp 
+           APP_PATH="SignedApp/chords-lsl-connector.app"
+           BIN_PATH="$APP_PATH/Contents/MacOS/Chords-Lsl-Connector"
+
+           echo "Signing inner binary..."
+           codesign --force --verbose=2 --options runtime \
+           --sign "${MACOS_SIGN_IDENTITY}" "$BIN_PATH"
+
+           echo "Signing .app bundle..."
+            codesign --force --verbose=2 --options runtime \
+            --sign "${MACOS_SIGN_IDENTITY}" "$APP_PATH"
+
+           echo "Verifying..."
+           codesign --verify --strict --verbose=2 "$APP_PATH"
+           echo "Running spctl assessment..."
+           spctl --assess --type exec --verbose=4 "$APP_PATH"
+
     
       - name: Rebuild .dmg with signed .app
         if: runner.os == 'macOS'
