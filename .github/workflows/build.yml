@@ -154,11 +154,10 @@ jobs:
         run: |
           dmg_path=$(find rebuilt-dmg -name "*.dmg" | head -n 1)
           echo "Submitting for notarization: $dmg_path"
-          xcrun notarytool submit "$dmg_path" \
-            --apple-id "$APPLE_ID" \
-            --team-id "$TEAM_ID" \
-            --password "$APP_PASSWORD" \
-            --wait
+           xcrun notarytool submit "$dmg_path" \
+          --keychain-profile "AC_PASSWORD" \
+          --wait
+  
 
       - name: Staple Notarization Ticket
         if: runner.os == 'macOS'
