@@ -112,46 +112,31 @@ jobs:
             --password "${{ secrets.APP_PASSWORD }}"
 
       - name: Build Tauri App
-        if: runner.os == 'macOS'
-        run: |
-           rustup target add aarch64-apple-darwin x86_64-apple-darwin
-           npx tauri build --target universal-apple-darwin
-     
-      - name: Build Tauri App
-        if: runner.os != 'macOS'
         run: npx tauri build
-            
+
       - name: Extract .app from .dmg
         if: runner.os == 'macOS'
         run: |
-          dmg_path=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name "*.dmg" | head -n 1)
+          dmg_path=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -n 1)
           echo "Mounting $dmg_path"
           hdiutil attach "$dmg_path" -mountpoint /Volumes/MyApp
           mkdir -p SignedApp  # Create SignedApp directory if it doesn't exist
           cp -R /Volumes/MyApp/*.app ./SignedApp
           hdiutil detach /Volumes/MyApp
 
-      - name: Sign .app bundle (safe & fast)
+      - name: Sign .app bundle
         if: runner.os == 'macOS'
         env:
-         MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
-           APP_PATH="SignedApp/chords-lsl-connector.app"
-           BIN_PATH="$APP_PATH/Contents/MacOS/Chords-Lsl-Connector"
-
-           echo "Signing inner binary..."
-           codesign --force --verbose=2 --options runtime \
-           --sign "${MACOS_SIGN_IDENTITY}" "$BIN_PATH"
-
-           echo "Signing .app bundle..."
-            codesign --force --verbose=2 --options runtime \
-            --sign "${MACOS_SIGN_IDENTITY}" "$APP_PATH"
-
-           echo "Verifying..."
-           codesign --verify --strict --verbose=2 "$APP_PATH"
-           echo "Running spctl assessment..."
-           spctl --assess --type exec --verbose=4 "$APP_PATH"
-
+          codesign --deep --force --verbose --options runtime \
+            --sign "${MACOS_SIGN_IDENTITY}" \
+            SignedApp/*.app
+          codesign --verify --deep --strict --verbose=2 SignedApp/*.app
+      - name: Verify SignedApp directory contents
+        if: runner.os == 'macOS'
+        run: |
+          ls -l SignedApp 
     
       - name: Rebuild .dmg with signed .app
         if: runner.os == 'macOS'
