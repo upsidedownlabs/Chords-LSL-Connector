@@ -111,15 +111,15 @@ jobs:
             --team-id "${{ secrets.TEAM_ID }}" \
             --password "${{ secrets.APP_PASSWORD }}"
 
-          - name: Build Tauri App
-            if: runner.os == 'macOS'
-            run: |
-             rustup target add aarch64-apple-darwin x86_64-apple-darwin
-             npx tauri build --target universal-apple-darwin
+      - name: Build Tauri App
+        if: runner.os == 'macOS'
+        run: |
+           rustup target add aarch64-apple-darwin x86_64-apple-darwin
+           npx tauri build --target universal-apple-darwin
      
-          - name: Build Tauri App
-            if: runner.os != 'macOS'
-            run: npx tauri build
+      - name: Build Tauri App
+        if: runner.os != 'macOS'
+        run: npx tauri build
             
       - name: Extract .app from .dmg
         if: runner.os == 'macOS'
