@@ -91,7 +91,7 @@ jobs:
           CERT_DEVELOPER_INSTALL_BASE64: ${{ secrets.CERT_DEVELOPER_INSTALL_BASE64 }}
           CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_PASSWORD: ${{ secrets.APP_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
           echo "$CERT_DEVELOPER_APP_BASE64" | base64 --decode > developer_app.p12
@@ -109,40 +109,65 @@ jobs:
           xcrun notarytool store-credentials "AC_PASSWORD" \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --team-id "${{ secrets.TEAM_ID }}" \
-            --password "${{ secrets.APPLE_PASSWORD }}"
-      
+            --password "${{ secrets.APP_PASSWORD }}"
 
       - name: Build Tauri App
         run: npx tauri build
+
+      - name: Extract .app from .dmg
+        if: runner.os == 'macOS'
+        run: |
+          dmg_path=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -n 1)
+          echo "Mounting $dmg_path"
+          hdiutil attach "$dmg_path" -mountpoint /Volumes/MyApp
+          cp -R /Volumes/MyApp/*.app ./SignedApp
+          hdiutil detach /Volumes/MyApp
+
+      - name: Sign .app bundle
+        if: runner.os == 'macOS'
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          codesign --deep --force --verbose --options runtime \
+            --sign "${MACOS_SIGN_IDENTITY}" \
+            SignedApp/*.app
+          codesign --verify --deep --strict --verbose=2 SignedApp/*.app
+
+      - name: Rebuild .dmg with signed .app
+        if: runner.os == 'macOS'
+        run: |
+          npm install -g create-dmg
+          mkdir -p rebuilt-dmg
+          npx create-dmg SignedApp/*.app rebuilt-dmg --overwrite
 
       - name: Notarize macOS App
         if: runner.os == 'macOS'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_PASSWORD: ${{ secrets.APP_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
-          dmg_path=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -n 1)
+          dmg_path=$(find rebuilt-dmg -name "*.dmg" | head -n 1)
           echo "Submitting for notarization: $dmg_path"
           xcrun notarytool submit "$dmg_path" \
             --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
-            --password "$APPLE_PASSWORD" \
+            --password "$APP_PASSWORD" \
             --wait
+
       - name: Staple Notarization Ticket
         if: runner.os == 'macOS'
         run: |
-          dmg_path=$(find src-tauri/target/release/bundle/dmg -name "*.dmg" | head -n 1)
-          echo "Stapling: $dmg_path"
+          dmg_path=$(find rebuilt-dmg -name "*.dmg" | head -n 1)
           xcrun stapler staple "$dmg_path"
 
-      # Upload platform-specific artifacts
       - name: Upload Artifact for macOS
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: tauri-app-macos
-          path: src-tauri/target/release/bundle/dmg/*.dmg
+          path: rebuilt-dmg/*.dmg
+
 
       - name: Upload Artifact for Windows
         if: runner.os == 'Windows'
