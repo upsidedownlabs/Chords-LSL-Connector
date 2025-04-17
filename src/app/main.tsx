@@ -18,21 +18,6 @@ const App = () => {
 
   const isProcessing = useRef(false);
   const appWindow = Window.getCurrent();
-
-  const toggleAlwaysOnTop = async () => {
-    const newValue = !alwaysOnTop;
-    setAlwaysOnTop(newValue);
-    await appWindow.setAlwaysOnTop(newValue);
-  };
-
-  const minimizeWindow = async () => {
-    await appWindow.minimize();
-  };
-
-  const closeWindow = async () => {
-    await appWindow.close();
-  };
-  const appWindow = Window.getCurrent();
   const [scane, setScane] = useState(false);
   const [alwaysOnTop, setAlwaysOnTop] = useState(true);
 
@@ -70,52 +55,18 @@ const App = () => {
   const ConnectwifiDevice = async () => {
     try {
       isProcessing.current = true;
+      setActiveButton("wifi");
       setDeviceConnected(true);
       await core.invoke("start_wifistreaming");
+
     } catch (error) {
       console.error('Failed to connect to device:', error);
     }
   };
 
-  const ConnectbluetoothDevice = async () => {
-    try {
-      setScane(true);
-      isProcessing.current = true;
-      await core.invoke("scan_ble_devices");
-    } catch (error) {
-      console.error("Failed to connect to device:", error);
-    }
-  };
-
-  useEffect(() => {
-    listen('connection', (event) => {
-      setStatus(event.payload as string);
-    });
-    listen('bleDevices', (event) => {
-      const devices = event.payload as { name: string; id: string }[];
-      if (devices.length === 0) {
-        setStatus("No NPG device");
-      }
-      setDevices(devices);
-    });
-    
-    listen('samplerate', (event) => {
-      setSamplerate(Math.ceil(Number(event.payload)));
-    });
-    listen('samplelost', (event) => {
-      setSamplelost(event.payload as number);
-    });
-
-    listen('lsl', (event) => {
-      setLSL(event.payload as string);
-    });
-  }, []);
-
-  
-
   return (
     <>
-      <div className=" flex-col bg-gray-200 overflow-hidden">
+      <div className=" flex-col bg-gray-200 rounded-2xl overflow-hidden">
 
         <div className="w-full">
           <div
@@ -129,7 +80,6 @@ const App = () => {
                   setActiveButton("serial");
                   setScane(false);
                   setDevices([]);
-                  ConnectserialDevice();
                 }}
                 className={`transition-colors duration-300 hover:text-blue-400 ${activeButton === "serial"
                   ? "text-green-500"
@@ -144,8 +94,8 @@ const App = () => {
               <button
                 onClick={() => {
                   setActiveButton("bluetooth");
+                  setScane(false);
                   setDevices([]);
-                  ConnectbluetoothDevice();
                 }}
                 className={`transition-colors duration-300 hover:text-blue-400 ${activeButton === "bluetooth"
                   ? "text-green-500"
@@ -163,7 +113,6 @@ const App = () => {
                   setActiveButton("wifi");
                   setScane(false);
                   setDevices([]);
-                  ConnectwifiDevice();
                 }}
                 className={`transition-colors duration-300 hover:text-blue-400 ${activeButton === "wifi"
                   ? "text-green-500"
@@ -196,16 +145,31 @@ const App = () => {
             </div>
           </div>
         </div>
-      )}
-      {deviceConnected && (
-        <button
-          onClick={disconnectFromDevice}
-          className="mt-4 px-6 py-2 bg-red-500 text-black rounded-lg shadow-lg hover:bg-red-600 transition"
+
+        {/* Second Button */}
+        <div
+          onClick={activeButton === null ? ConnectwifiDevice : undefined}
+          onMouseDown={activeButton === null ? () => (isProcessing.current = true) : undefined}
+          className={`
+            flex items-center justify-center w-28 h-28 rounded-full cursor-pointer bg-gray-200 shadow-[8px_8px_16px_#bebebe,-8px_-8px_16px_#ffffff] 
+            transition-all duration-600 relative ${activeButton && activeButton !== "serial" ?
+               'animate-[rotateShadow_1.5s_linear_infinite]' : ''}
+            ${activeButton && activeButton !== "wifi" ? "opacity-50 pointer-events-none" : ""}
+          `}
         >
-          Disconnect
-        </button>
-      )}
+          <Wifi
+            size={40}
+            className={`transition-colors duration-300 ${
+              deviceConnected && activeButton === "wifi" ? "text-green-500" : "text-gray-500"
+            }`}
+          />
+        </div>
+      </div>
     </div>
+
+
+      </div>
+    </>
   );
 };
 
