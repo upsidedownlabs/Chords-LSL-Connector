@@ -294,7 +294,7 @@ const App = () => {
               </div>
               <div className=" flex flex-col justify-center pl-2  border border-slate-200 bg-slate-50 shadow-sm min-h-[20px]  transition-all">
                 <p className='text-black '>
-                  <span className="text-lg  font-semibold">Sample Lost: </span>{samplelost || "no"}
+                  <span className="text-lg  font-semibold">Sample Lost: </span>{samplelost}
                 </p>
               </div>
               <div className=" flex flex-col justify-center  pl-2 border-x border-t border-slate-200 bg-slate-50 shadow-sm min-h-[20px]  transition-all">

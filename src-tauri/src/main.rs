@@ -24,6 +24,7 @@ lazy_static! {
     static ref CHANNELS: Arc<Mutex<usize>> = Arc::new(Mutex::new(6)); // Default baud rate
     static ref SAMPLE_RATE: Arc<Mutex<f64>> = Arc::new(Mutex::new(500.0)); // Default baud rate
 }
+use std::collections::VecDeque;
 use tauri::Manager;
 
 #[tauri::command]
@@ -236,14 +237,15 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
 
                             if last_print_time.elapsed() >= Duration::from_secs(1) {
                                 let elapsed = start_time.elapsed().as_secs_f32();
-                                let refresh_rate = format!("{:.2}", packet_count as f32 / elapsed);
-                                let samples_per_second =
-                                    format!("{:.2}", sample_count as f32 / elapsed);
-                                let bytes_per_second =
-                                    format!("{:.2}", byte_count as f32 / elapsed);
+                                let samples_per_second = format!("{:.2}", sample_count as f32);
+
                                 let _ = app_handle.emit("connection", "Connected ");
-                                let _ = app_handle.emit("samplerate", samples_per_second);
+                                if elapsed > 2.0 {
+                                    // Wait at least 2 seconds
+                                    let _ = app_handle.emit("samplerate", samples_per_second);
+                                }
                                 let _ = app_handle.emit("lsl", "uidserial007");
+                                sample_count = 0;
                                 last_print_time = Instant::now();
                             }
                         }
@@ -282,97 +284,136 @@ fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
 
 #[tauri::command]
 async fn start_wifistreaming(app_handle: AppHandle) {
-    let stream_name = "NPG-Lite";
-    let info = StreamInfo::new(
-        stream_name,
-        "EXG",
-        3,
-        500.0,
-        ChannelFormat::Float32,
-        "uidwifi007",
-    )
-    .unwrap();
-    let outlet = StreamOutlet::new(&info, 0, 360).unwrap();
-    let ws_url = "ws://multi-emg.local:81";
-    let (mut socket, _) =
-        connect(Url::parse(ws_url).unwrap()).expect("WebSocket connection failed");
-    println!("{} WebSocket connected!", stream_name);
+    tauri::async_runtime::spawn_blocking(move || {
+        let stream_name = "NPG-Lite";
+        let info = StreamInfo::new(
+            stream_name,
+            "EXG",
+            3,
+            500.0,
+            ChannelFormat::Float32,
+            "uidwifi007",
+        )
+        .expect("Failed to create StreamInfo");
 
-    let mut block_size = 13;
-    let mut packet_size = 0;
-    let mut data_size = 0;
-    let mut sample_size = 0;
-    let mut previous_sample_number: Option<u8> = None;
-    let mut previous_data = vec![];
-    let start_time = Instant::now();
+        let outlet = StreamOutlet::new(&info, 0, 360).expect("Failed to create StreamOutlet");
 
-    loop {
-        match socket.read_message() {
-            Ok(Message::Binary(data)) => {
-                data_size += data.len();
-                let elapsed_time = start_time.elapsed().as_secs_f64();
-                let mut samplelost = 0;
-                if elapsed_time >= 1.0 {
-                    let samples_per_second = calculate_rate(sample_size, elapsed_time);
-                    let refresh_rate = calculate_rate(packet_size, elapsed_time);
-                    let bytes_per_second = calculate_rate(data_size, elapsed_time);
-                    println!(
-                        "{} FPS : {} SPS : {} BPS",
-                        refresh_rate.ceil(),
-                        samples_per_second.ceil(),
-                        bytes_per_second.ceil()
-                    );
-                    packet_size = 0;
-                    sample_size = 0;
-                    data_size = 0;
-                }
+        let ws_url = "ws://multi-emg.local:81";
+        let (mut socket, _) =
+            connect(Url::parse(ws_url).expect("Failed to parse URL")).expect("WebSocket failed");
+        println!("{} WebSocket connected!", stream_name);
 
-                packet_size += 1;
-                println!("Packet size: {} Bytes", data.len());
+        let mut block_size = 13;
+        let mut packet_size = 0;
+        let mut data_size = 0;
+        let mut sample_size = 0;
+        let mut previous_sample_number: Option<u8> = None;
+        let mut previous_data = vec![];
+        let mut sample_count = 0;
+        let mut samplelost = 0;
+        let mut start_time = Instant::now();
+        const BUFFER_SIZE: usize = 20;
 
-                for block_location in (0..data.len()).step_by(block_size) {
-                    sample_size += 1;
-                    let block = &data[block_location..block_location + block_size];
-                    let sample_number = block[0];
-                    let mut channel_data = vec![];
+        let mut buffer: VecDeque<f64> = VecDeque::with_capacity(BUFFER_SIZE);
 
-                    for channel in 0..3 {
-                        let offset = 1 + (channel * 2);
-                        let sample = i16::from_be_bytes([block[offset], block[offset + 1]]);
-                        channel_data.push(sample as f32);
+        loop {
+            match socket.read_message() {
+                Ok(Message::Binary(data)) => {
+                    data_size += data.len();
+                    let elapsed_time = start_time.elapsed().as_secs_f64();
+
+                    if elapsed_time >= 1.0 {
+                        let samples_per_second = calculate_rate(sample_size, elapsed_time);
+                        let refresh_rate = calculate_rate(packet_size, elapsed_time);
+                        let bytes_per_second = calculate_rate(data_size, elapsed_time);
+
+                        let sps = samples_per_second.floor();
+
+                        // Maintain the circular buffer (add new, remove oldest if over capacity)
+                        if buffer.len() == BUFFER_SIZE {
+                            buffer.pop_front();
+                        }
+                        buffer.push_back(sps);
+
+                        // Calculate average
+                        let max_sps: f64 = *buffer
+                            .iter()
+                            .max_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap_or(&sps);
+
+                        println!(
+                            "{} FPS : {} SPS : {} BPS (AVG SPS: {:.2})",
+                            refresh_rate.ceil(),
+                            sps,
+                            bytes_per_second.ceil(),
+                            max_sps
+                        );
+
+                        // Emit the average instead of raw value
+                        let _ = app_handle.emit("samplerate", max_sps);
+
+                        packet_size = 0;
+                        sample_size = 0;
+                        data_size = 0;
+                        start_time = Instant::now();
                     }
+                    packet_size += 1;
 
-                    if let Some(prev) = previous_sample_number {
-                        if sample_number.wrapping_sub(prev) > 1 {
-                            println!("Error: Sample Lost");
-                            samplelost += 1;
-                            break;
-                        } else if sample_number == prev {
-                            println!("Error: Duplicate Sample");
-                            break;
+                    for block_location in (0..data.len()).step_by(block_size) {
+                        sample_size += 1;
+                        let block = &data[block_location..block_location + block_size];
+                        let sample_number = block[0];
+                        let mut channel_data = vec![];
+
+                        for channel in 0..3 {
+                            let offset = 1 + (channel * 2);
+                            let sample = i16::from_be_bytes([block[offset], block[offset + 1]]);
+                            channel_data.push(sample as f32);
+                        }
+                        sample_count += 1;
+                        if let Some(prev) = previous_sample_number {
+                            if sample_number.wrapping_sub(prev) > 1 {
+                                println!("Error: Sample Lost");
+                                samplelost += 1;
+                                let _ = app_handle.emit("samplelost", samplelost);
+                                break;
+                            } else if sample_number == prev {
+                                println!("Error: Duplicate Sample");
+                                break;
+                            }
+                        }
+
+                        previous_sample_number = Some(sample_number);
+                        previous_data = channel_data.clone();
+
+                        // println!("EEG Data: {} {:?}", sample_number, channel_data);
+                        if let Err(err) = outlet.push_sample(&channel_data) {
+                            eprintln!("Failed to push sample: {}", err);
+                        }
+
+                        let _ = app_handle.emit("connection", "Connected");
+
+                        if sample_count % 100 == 0 {
+                            let elapsed = start_time.elapsed().as_secs_f64();
+                            let rate = sample_count as f64 / elapsed;
+
+                            println!(
+                                "[DATA] Received {} total samples ({:.2} Hz)",
+                                sample_count, rate
+                            );
+                            let _ = app_handle.emit("lsl", "uidwifi007");
                         }
                     }
-                    let _ = app_handle.emit("samplelost", samplelost);
-
-                    previous_sample_number = Some(sample_number);
-                    previous_data = channel_data.clone();
-
-                    println!("EEG Data: {} {:?}", sample_number, channel_data);
-                    outlet.push_sample(&channel_data).unwrap();
-                    let _ = app_handle.emit("connection", "Connected ");
-                    let _ =
-                        app_handle.emit("samplerate", calculate_rate(sample_size, elapsed_time));
-                    let _ = app_handle.emit("lsl", "uidwifi 007");
+                }
+                Ok(_) => {} // Ignore other messages
+                Err(e) => {
+                    eprintln!("WebSocket error: {:?}", e);
+                    break;
                 }
             }
-            Ok(_) => {} // Ignore non-binary messages
-            Err(e) => {
-                eprintln!("WebSocket error: {:?}", e);
-                break;
-            }
+            thread::sleep(Duration::from_millis(1));
         }
-        thread::sleep(Duration::from_millis(1));
-    }
+    });
 }
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
 use btleplug::platform::Manager as BtleManager;
@@ -517,6 +558,8 @@ async fn scan_ble_devices(app_handle: AppHandle) -> Result<(), String> {
 async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<String, String> {
     println!("[CONNECT] Starting connection to device: {}", device_id);
     close_ble_outlet();
+    const BUFFER_SIZE: usize = 20;
+    let mut buffer: VecDeque<f64> = VecDeque::with_capacity(BUFFER_SIZE);
 
     // 1. Initialize Bluetooth Manager
     let manager = match BtleManager::new().await {
@@ -585,45 +628,7 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                 ])
                 .output();
 
-            match check_paired {
-                Ok(output) => {
-                    let output_str = String::from_utf8_lossy(&output.stdout);
-                    if output_str.trim().is_empty() {
-                        println!("[WINDOWS] Device not paired, attempting to pair...");
 
-                        // Try modern Windows 10/11 method first
-                        println!("[WINDOWS] Trying modern pairing via ms-settings...");
-                        let _ = Command::new("powershell")
-                            .args(&[
-                                "-Command",
-                                &format!(
-                                    "Start-Process ms-settings:bluetooth; \
-                                    Start-Sleep -Seconds 2; \
-                                    Add-BluetoothDevice -DeviceId {}",
-                                    device_id
-                                ),
-                            ])
-                            .status();
-
-                        // Then try legacy method
-                        println!("[WINDOWS] Trying legacy pairing via bthprops.cpl...");
-                        let _ = Command::new("powershell")
-                            .args(&[
-                                "-Command",
-                                &format!(
-                                    "Start-Process bthprops.cpl; \
-                                    Start-Sleep -Seconds 2; \
-                                    Add-BluetoothDevice -DeviceId {}",
-                                    device_id
-                                ),
-                            ])
-                            .status();
-
-                        tokio::time::sleep(Duration::from_secs(5)).await;
-                    }
-                }
-                Err(e) => println!("[WARN] Failed to check pairing status: {}", e),
-            }
 
             // Refresh device list
             println!("[WINDOWS] Starting fresh scan...");
@@ -829,13 +834,22 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                                 len => println!("[WARN] Unexpected packet length: {}", len),
                             }
                             let elapsed = start_time.elapsed().as_secs_f64();
-                            let rate = sample_count as f64 / elapsed;
+                            let rate: f64 = sample_count as f64 / elapsed;
+                            if buffer.len() == BUFFER_SIZE {
+                                buffer.pop_front();
+                            }
+                            buffer.push_back(rate);
+                            let max_sps: f64 = *buffer
+                                .iter()
+                                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                                .unwrap_or(&rate);
+
                             if sample_count % 100 == 0 {
                                 println!(
                                     "[DATA] Received {} total samples ({:.2} Hz)",
                                     sample_count, rate
                                 );
-                                let _ = app_handle.emit("samplerate", rate);
+                                let _ = app_handle.emit("samplerate", max_sps);
                                 let _ = app_handle.emit("lsl", "uidbluetooth007");
                             }
                         } else {
