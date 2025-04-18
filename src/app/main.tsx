@@ -79,28 +79,48 @@ const App = () => {
   };
 
   useEffect(() => {
-    listen('connection', (event) => {
-      setStatus(event.payload as string);
-    });
-    listen('bleDevices', (event) => {
-      const devices = event.payload as { name: string; id: string }[];
-      if (devices.length === 0) {
-        setStatus("No NPG device");
+    const unlistenFns: (() => void)[] = [];
+  
+    const setupListeners = async () => {
+      const unlistenConnection = await listen('connection', (event) => {
+        setStatus(event.payload as string);
+      });
+      unlistenFns.push(unlistenConnection);
+  
+      const unlistenBleDevices = await listen('bleDevices', (event) => {
+        const devices = event.payload as { name: string; id: string }[];
+        if (devices.length === 0) {
+          setStatus("No NPG device");
+        }
+        setDevices(devices);
+      });
+      unlistenFns.push(unlistenBleDevices);
+  
+      const unlistenSamplerate = await listen('samplerate', (event) => {
+        setSamplerate(Math.ceil(Number(event.payload)));
+      });
+      unlistenFns.push(unlistenSamplerate);
+  
+      const unlistenSamplelost = await listen('samplelost', (event) => {
+        setSamplelost(event.payload as number);
+      });
+      unlistenFns.push(unlistenSamplelost);
+  
+      const unlistenLSL = await listen('lsl', (event) => {
+        setLSL(event.payload as string);
+      });
+      unlistenFns.push(unlistenLSL);
+    };
+  
+    setupListeners();
+  
+    return () => {
+      for (const unlisten of unlistenFns) {
+        unlisten();
       }
-      setDevices(devices);
-    });
-
-    listen('samplerate', (event) => {
-      setSamplerate(Math.ceil(Number(event.payload)));
-    });
-    listen('samplelost', (event) => {
-      setSamplelost(event.payload as number);
-    });
-
-    listen('lsl', (event) => {
-      setLSL(event.payload as string);
-    });
+    };
   }, []);
+  
 
 
 

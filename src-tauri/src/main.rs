@@ -842,14 +842,9 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                                 .unwrap_or(&rate);
 
-                            if sample_count % 100 == 0 {
-                                println!(
-                                    "[DATA] Received {} total samples ({:.2} Hz)",
-                                    sample_count, rate
-                                );
+                
                                 let _ = app_handle.emit("samplerate", max_sps);
                                 let _ = app_handle.emit("lsl", "uidbluetooth007");
-                            }
                         } else {
                             println!("[TASK] Notification stream ended");
                             break;
