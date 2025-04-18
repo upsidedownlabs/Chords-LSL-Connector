@@ -53,9 +53,10 @@ const App = () => {
 
   const ConnectwifiDevice = async () => {
     try {
+   
+      await core.invoke("start_wifistreaming");
       isProcessing.current = true;
       setDeviceConnected(true);
-      await core.invoke("start_wifistreaming");
     } catch (error) {
       console.error('Failed to connect to device:', error);
     }
@@ -120,7 +121,7 @@ const App = () => {
                   : ""
                   }`}
                 title="Serial"
-                disabled={deviceConnected}
+                disabled={activeButton === "bluetooth"|| activeButton === "wifi"}
               >
                 <Usb size={20} />
               </button>
@@ -136,7 +137,7 @@ const App = () => {
                   : ""
                   }`}
                 title="Bluetooth"
-                disabled={deviceConnected}
+                disabled={activeButton === "serial"|| activeButton === "wifi"}
 
               >
                 <Bluetooth size={20} />
@@ -154,7 +155,7 @@ const App = () => {
                   : ""
                   }`}
                 title="WiFi"
-                disabled={deviceConnected}
+                disabled={activeButton === "bluetooth"|| activeButton === "serial"}
 
               >
                 <Wifi size={20} />
