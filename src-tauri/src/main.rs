@@ -221,8 +221,6 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
                                                 (high << 8) | low
                                             })
                                             .collect();
-                                        println!("Received raw data: {:?}", data);
-
                                         if tx.send(data).is_err() {
                                             println!("Failed to send data to the main thread.");
                                             break;
