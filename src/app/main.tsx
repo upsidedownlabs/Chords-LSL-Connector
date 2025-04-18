@@ -22,8 +22,14 @@ const App = () => {
   const [alwaysOnTop, setAlwaysOnTop] = useState(true);
 
   useEffect(() => {
-    appWindow.setAlwaysOnTop(true);
-  }, [appWindow]);
+    const initWindowState = async () => {
+      await appWindow.setAlwaysOnTop(true);
+      setAlwaysOnTop(true);
+    };
+  
+    initWindowState();
+  }, []);
+  
 
   const toggleAlwaysOnTop = async () => {
     const newValue = !alwaysOnTop;
@@ -121,8 +127,8 @@ const App = () => {
                   : ""
                   }`}
                 title="Serial"
-                disabled={activeButton === "bluetooth"|| activeButton === "wifi"}
-              >
+                disabled={activeButton !== null}
+                >
                 <Usb size={20} />
               </button>
 
@@ -137,7 +143,7 @@ const App = () => {
                   : ""
                   }`}
                 title="Bluetooth"
-                disabled={activeButton === "serial"|| activeButton === "wifi"}
+                disabled={activeButton !== null}
 
               >
                 <Bluetooth size={20} />
@@ -155,7 +161,7 @@ const App = () => {
                   : ""
                   }`}
                 title="WiFi"
-                disabled={activeButton === "bluetooth"|| activeButton === "serial"}
+                disabled={activeButton !== null}
 
               >
                 <Wifi size={20} />
