@@ -10,11 +10,10 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-
     "windows": [
       {
         "title": "Chords LSL Connector",
-        "height":164,
+        "height": 164,
         "width": 400,
         "transparent": true,
         "resizable": false,
@@ -41,6 +40,10 @@
     "icon": [
       "icons/chords-logo.png",
       "icons/Chords-logo-128px.ico"
-    ]
+    ],
+    "macOS": {
+      "entitlements": "src-tauri/Entitlements.plist",
+      "minimumSystemVersion": "10.15"
+    }
   }
 }
