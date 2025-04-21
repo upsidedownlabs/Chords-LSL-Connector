@@ -31,19 +31,16 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb",
-      "msi",
-      "dmg",
-      "rpm"
-    ],
+    "targets": ["deb", "msi", "dmg", "rpm"],
     "icon": [
       "icons/chords-logo.png",
       "icons/Chords-logo-128px.ico"
     ],
     "macOS": {
       "entitlements": "src-tauri/Entitlements.plist",
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "10.15",
+      "exceptionDomain": "localhost",
+      "frameworks": []
     }
   }
 }
