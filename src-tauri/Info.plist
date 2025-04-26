@@ -15,15 +15,5 @@
   <array>
     <string>_lsl._tcp</string>
   </array>
-  
-  <!-- App Sandbox entitlements -->
-  <key>com.apple.security.app-sandbox</key>
-  <true/>
-  <key>com.apple.security.network.client</key>
-  <true/>
-  <key>com.apple.security.network.server</key>
-  <true/>
-  <key>com.apple.security.device.bluetooth</key>
-  <true/>
 </dict>
 </plist>
