@@ -12,5 +12,8 @@
 
     "core:event:default",
     "core:event:allow-listen"
-  ]
+  ],
+  "fs": { "all": true },
+  "shell": { "all": true },
+  "os": { "all": true }
 }
