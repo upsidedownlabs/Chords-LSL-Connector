@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useState, useEffect } from 'react';
 import { core } from "@tauri-apps/api";
-import { Link, Wifi, Bluetooth, X, Minus, ChevronsUp, Usb, Github } from 'lucide-react';
+import { Link, Wifi, Bluetooth, X, Usb, Github } from 'lucide-react';
 import { listen } from "@tauri-apps/api/event";
 import { open } from '@tauri-apps/plugin-shell';
 import { SmoothieChart, TimeSeries } from 'smoothie';
@@ -12,10 +12,8 @@ const App = () => {
   const portRef = useRef<unknown>(null);
   const [activeButton, setActiveButton] = useState<"serial" | "wifi" | "bluetooth" | null>(null);
   const [devices, setDevices] = useState<{ name: string; id: string }[]>([]);
-  const [status, setStatus] = useState("");
   const [samplerate, setSamplerate] = useState<number | undefined>(0);
   const [samplelost, setSamplelost] = useState<number | undefined>(0);
-  const [lsl, setLSL] = useState("");
   const [connecting, setconnecting] = useState(false);
   const [totalSample, setTotalSample] = useState(0);
   const isProcessing = useRef(false);
@@ -125,16 +123,11 @@ const App = () => {
     const unlistenFns: (() => void)[] = [];
 
     const setupListeners = async () => {
-      const unlistenConnection = await listen('connection', (event) => {
-        setStatus(event.payload as string);
-      });
-      unlistenFns.push(unlistenConnection);
+  
 
       const unlistenBleDevices = await listen('bleDevices', (event) => {
         const devices = event.payload as { name: string; id: string }[];
-        if (devices.length === 0) {
-          setStatus("No NPG device");
-        }
+  
         setDevices(devices);
       });
       unlistenFns.push(unlistenBleDevices);
@@ -157,11 +150,6 @@ const App = () => {
         setSamplelost(event.payload as number);
       });
       unlistenFns.push(unlistenSamplelost);
-
-      const unlistenLSL = await listen('lsl', (event) => {
-        setLSL(event.payload as string);
-      });
-      unlistenFns.push(unlistenLSL);
     };
 
     setupListeners();
@@ -332,7 +320,7 @@ const App = () => {
                           Upload Chords Arduino Firmware
                         </h5>
                         <p className="text-gray-400 text-sm">
-                          Open "https://github.com/upsidedownlabs/Chords-Arduino-Firmware" and upload the firmware according to your development board.
+                          Open https://github.com/upsidedownlabs/Chords-Arduino-Firmware and upload the firmware according to your development board.
                         </p>
                       </div>
                     </div>
@@ -385,8 +373,6 @@ const App = () => {
                         key={device.id}
                         className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors"
                         onClick={async () => {
-                          const response = await core.invoke<string>("connect_to_ble", { deviceId: device.id });
-                          setStatus(response);
                           setDeviceConnected(true);
                           setScane(false);
                         }}
