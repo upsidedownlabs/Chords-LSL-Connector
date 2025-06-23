@@ -395,10 +395,6 @@ async fn start_wifistreaming(app_handle: AppHandle) {
                             let elapsed = start_time.elapsed().as_secs_f64();
                             let rate = sample_count as f64 / elapsed;
 
-                            println!(
-                                "[DATA] Received {} total samples ({:.2} Hz)",
-                                sample_count, rate
-                            );
                             let _ = app_handle.emit("lsl", "uidwifi007");
                         }
                     }
@@ -626,8 +622,6 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                 ])
                 .output();
 
-
-
             // Refresh device list
             println!("[WINDOWS] Starting fresh scan...");
             if let Err(e) = adapter.start_scan(ScanFilter::default()).await {
@@ -791,20 +785,43 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                 let app_handle_clone = app_handle.clone();
 
                 // 16. Spawn processing task
+                // Modify the notification processing loop in connect_to_ble:
+
                 tokio::spawn(async move {
                     println!("[TASK] Starting data processing loop");
+                    const EXPECTED_SAMPLE_RATE: f64 = 500.0; // Fixed expected sample rate
+                    const SAMPLES_PER_SECOND: usize = EXPECTED_SAMPLE_RATE as usize;
+                    const BUFFER_SIZE: usize = 20;
+                    
                     let mut sample_count = 0;
+                    let mut packet_count = 0;
+                    let mut lost_samples = 0;
+                    let mut last_sample_number: Option<u8> = None;
                     let start_time = Instant::now();
-
+                    let mut last_print_time = Instant::now();
+                    let mut buffer: VecDeque<f64> = VecDeque::with_capacity(BUFFER_SIZE);
+                
                     while *BLE_CONNECTED.lock().unwrap() {
                         if let Some(data) = notifications.next().await {
+                            packet_count += 1;
+                            
                             match data.value.len() {
                                 NEW_PACKET_LEN => {
                                     for chunk in data.value.chunks_exact(SINGLE_SAMPLE_LEN) {
-                                        if let Ok(sample) =
-                                            process_ble_sample(chunk, app_handle_clone.clone())
-                                        {
+                                        if let Ok(sample) = process_ble_sample(chunk, app_handle_clone.clone()) {
+                                            // Check sample counter continuity
+                                            let current_sample_number = chunk[0];
+                                            if let Some(last) = last_sample_number {
+                                                let expected = last.wrapping_add(1);
+                                                if current_sample_number != expected {
+                                                    lost_samples += current_sample_number.wrapping_sub(expected) as usize;
+                                                    println!("Lost {} samples", current_sample_number.wrapping_sub(expected));
+                                                }
+                                            }
+                                            last_sample_number = Some(current_sample_number);
+                                            
                                             sample_count += 1;
+                                            
                                             // Push to LSL
                                             if let Some(outlet) = &BLE_OUTLET.lock().unwrap().0 {
                                                 if let Err(e) = outlet.push_sample(&sample) {
@@ -815,46 +832,77 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                                     }
                                 }
                                 SINGLE_SAMPLE_LEN => {
-                                    if let Ok(sample) =
-                                        process_ble_sample(&data.value, app_handle_clone.clone())
-                                    {
-                                        // Push to LSL
+                                    if let Ok(sample) = process_ble_sample(&data.value, app_handle_clone.clone()) {
+                                        // Check sample counter continuity
+                                        let current_sample_number = data.value[0];
+                                        if let Some(last) = last_sample_number {
+                                            let expected = last.wrapping_add(1);
+                                            if current_sample_number != expected {
+                                                lost_samples += current_sample_number.wrapping_sub(expected) as usize;
+                                                println!("Lost {} samples", current_sample_number.wrapping_sub(expected));
+                                            }
+                                        }
+                                        last_sample_number = Some(current_sample_number);
+                                        
                                         sample_count += 1;
-
+                                        
                                         if let Some(outlet) = &BLE_OUTLET.lock().unwrap().0 {
                                             if let Err(e) = outlet.push_sample(&sample) {
                                                 println!("[LSL] Push error: {}", e);
                                             }
                                         }
-                                        // Send to frontend
                                     }
                                 }
                                 len => println!("[WARN] Unexpected packet length: {}", len),
                             }
-                            let elapsed = start_time.elapsed().as_secs_f64();
-                            let rate: f64 = sample_count as f64 / elapsed;
-                            if buffer.len() == BUFFER_SIZE {
-                                buffer.pop_front();
-                            }
-                            buffer.push_back(rate);
-                            let max_sps: f64 = *buffer
-                                .iter()
-                                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                                .unwrap_or(&rate);
-
                 
-                                let _ = app_handle.emit("samplerate", max_sps);
-                                let _ = app_handle.emit("lsl", "uidbluetooth007");
+                            // Calculate statistics every second
+                            let elapsed = last_print_time.elapsed().as_secs_f64();
+                            if elapsed >= 1.0 {
+                                // Calculate actual sample rate (should be close to 500)
+                                let actual_rate = sample_count as f64 / elapsed;
+                                
+                                // Calculate percentage of expected samples received
+                                let expected_samples = (EXPECTED_SAMPLE_RATE * elapsed) as usize;
+                                let received_percentage = (sample_count as f64 / expected_samples as f64) * 100.0;
+                                
+                                // Maintain buffer for smoothing
+                                if buffer.len() == BUFFER_SIZE {
+                                    buffer.pop_front();
+                                }
+                                buffer.push_back(received_percentage);
+                                
+                                // Calculate average reception percentage
+                                let avg_percentage: f64 = buffer.iter().sum::<f64>() / buffer.len() as f64;
+                                
+                                // println!(
+                                //     "Expected: {:.1}Hz, Actual: {:.1}Hz, Received: {:.1}% (Avg: {:.1}%), Lost: {}",
+                                //     EXPECTED_SAMPLE_RATE,
+                                //     actual_rate,
+                                //     received_percentage,
+                                //     avg_percentage,
+                                //     lost_samples
+                                // );
+                
+                                // Emit quality metrics to frontend
+                                let _ = app_handle_clone.emit("samplerate", actual_rate);
+                                let _ = app_handle_clone.emit("samplelost", lost_samples);
+                                let _ = app_handle_clone.emit("lsl", "uidbluetooth007");
+                
+                                // Reset counters
+                                sample_count = 0;
+                                lost_samples = 0;
+                                last_print_time = Instant::now();
+                            }
                         } else {
                             println!("[TASK] Notification stream ended");
                             break;
                         }
                     }
-
+                
                     println!("[TASK] Cleaning up...");
                     close_ble_outlet();
                 });
-
                 return Ok(format!("Connected"));
             }
         }
@@ -917,6 +965,7 @@ fn main() {
             });
             Ok(())
         })
+        .plugin(tauri_plugin_shell::init())
         .run(tauri::generate_context!())
         .expect("Error while running Tauri application");
 }
