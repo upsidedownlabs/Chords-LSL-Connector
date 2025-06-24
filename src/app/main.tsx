@@ -252,16 +252,16 @@ const App = () => {
               onClick={() => handleClick("https://www.brainproducts.com/downloads/more-software/")}
               className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors cursor-pointer "
             >
-              BrainVision LSL Viewer <OSIcon size={32} os="windows" className="text-white-500" />
+              BrainVision LSL Viewer <OSIcon size={28} os="windows" className="text-white-500" />
             </button>
 
             <button
               onClick={() => handleClick("https://open-ephys.org/gui")}
               className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700' text-white rounded-md text-sm transition-colors cursor-pointer"
             >
-              Open Ephys GUI   <OSIcon os="windows" size={32}className="text-white-500" />
-              <OSIcon os="linux" size={32} className="text-white-500" />
-              <OSIcon os="macos" size={32} className="text-white-700" />
+              Open Ephys GUI   <OSIcon os="windows" size={28}className="text-white-500" />
+              <OSIcon os="linux" size={28} className="text-white-500" />
+              <OSIcon os="macos" size={28} className="text-white-700" />
             </button>
           </div>
 
