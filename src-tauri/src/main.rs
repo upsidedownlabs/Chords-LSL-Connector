@@ -300,7 +300,7 @@ async fn start_wifistreaming(app_handle: AppHandle) {
         let (mut socket, _) =
             connect(Url::parse(ws_url).expect("Failed to parse URL")).expect("WebSocket failed");
         println!("{} WebSocket connected!", stream_name);
-
+        let _ = app_handle.emit("connection", "Connected"); 
         let mut block_size = 13;
         let mut packet_size = 0;
         let mut data_size = 0;

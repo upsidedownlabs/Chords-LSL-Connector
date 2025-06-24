@@ -5,7 +5,8 @@ import { Link, Wifi, Bluetooth, X, Usb, Github } from 'lucide-react';
 import { listen } from "@tauri-apps/api/event";
 import { open } from '@tauri-apps/plugin-shell';
 import { SmoothieChart, TimeSeries } from 'smoothie';
-import OSIcon from './OSicons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faWindows, faApple, faDebian } from '@fortawesome/free-brands-svg-icons';
 
 const App = () => {
   const [deviceConnected, setDeviceConnected] = useState(false);
@@ -30,9 +31,9 @@ const App = () => {
       isProcessing.current = true;
       const portName = await core.invoke('detect_arduino') as string;
       portRef.current = portName;
+      await core.invoke('start_streaming', { portName: portRef.current, stream_name: "UDL" });
       setDeviceConnected(true);
       setconnecting(false);
-      await core.invoke('start_streaming', { portName: portRef.current, stream_name: "UDL" });
     } catch (error) {
       console.error('Failed to connect to device:', error);
     }
@@ -44,7 +45,7 @@ const App = () => {
       setTotalSample(0);
       await core.invoke("start_wifistreaming");
       isProcessing.current = true;
-      setDeviceConnected(true);
+   
     } catch (error) {
       console.error('Failed to connect to device:', error);
     }
@@ -69,8 +70,8 @@ const App = () => {
       grid: {
         strokeStyle: 'rgb(75, 85, 99)',
         lineWidth: 1,
-        millisPerLine: 8000,     // ~10 horizontal lines for 80s window
-        verticalSections: 6,     // 5 vertical grid sections (Y-axis)
+        millisPerLine: 8000,
+        verticalSections: 6,
         borderVisible: false
       },
 
@@ -123,11 +124,11 @@ const App = () => {
     const unlistenFns: (() => void)[] = [];
 
     const setupListeners = async () => {
-  
+
 
       const unlistenBleDevices = await listen('bleDevices', (event) => {
         const devices = event.payload as { name: string; id: string }[];
-  
+
         setDevices(devices);
       });
       unlistenFns.push(unlistenBleDevices);
@@ -146,6 +147,13 @@ const App = () => {
 
       unlistenFns.push(unlistenSamplerate);
 
+      const unlistenconnection = await listen('connection', (event) => {
+        setDeviceConnected(true);
+        setconnecting(false);
+      });
+
+      unlistenFns.push(unlistenconnection);
+      
       const unlistenSamplelost = await listen('samplelost', (event) => {
         setSamplelost(event.payload as number);
       });
@@ -246,22 +254,40 @@ const App = () => {
             ))}
           </div>
           <div className='flex w-full items-center gap-2 p-2 bg-blue-900/20 rounded-lg border border-blue-800 mt-4 '>
-            <span className="text-white text-sm pl-2">Visualise your bio-potential signals on</span>
+            <span className="text-white text-sm pl-2">Visualise/Record your signals using</span>
 
             <button
               onClick={() => handleClick("https://www.brainproducts.com/downloads/more-software/")}
-              className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors cursor-pointer "
+              className="flex items-center gap-2 px-3 py-1 bg-pink-500  text-white rounded-md text-sm transition-colors cursor-pointer "
             >
-              BrainVision LSL Viewer <OSIcon size={28} os="windows" className="text-white-500" />
+              BV LSL Viewer <FontAwesomeIcon icon={faWindows} />
+
+
             </button>
 
             <button
               onClick={() => handleClick("https://open-ephys.org/gui")}
-              className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700' text-white rounded-md text-sm transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1 bg-purple-600  text-white rounded-md text-sm transition-colors cursor-pointer"
             >
-              Open Ephys GUI   <OSIcon os="windows" size={28}className="text-white-500" />
-              <OSIcon os="linux" size={28} className="text-white-500" />
-              <OSIcon os="macos" size={28} className="text-white-700" />
+              OE GUI  <FontAwesomeIcon icon={faWindows} />
+              <FontAwesomeIcon icon={faApple} />
+              <FontAwesomeIcon icon={faDebian} />
+
+            </button>
+            <button
+              onClick={() => handleClick("https://github.com/labstreaminglayer/App-LabRecorder/releases/tag/v1.16.5")}
+              className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-md text-sm transition-colors cursor-pointer"
+            >
+              LabRecorder <FontAwesomeIcon icon={faWindows} />
+              <FontAwesomeIcon icon={faApple} />
+              <FontAwesomeIcon icon={faDebian} />
+
+            </button>
+            <button
+              onClick={() => handleClick("https://labstreaminglayer.readthedocs.io/info/viewers.html")}
+              className="flex items-center gap-2 px-3 py-1 bg-green-600  text-white rounded-md text-sm transition-colors cursor-pointer"
+            >
+              More +
             </button>
           </div>
 
@@ -271,7 +297,7 @@ const App = () => {
                 <div className="mb-2">
                   <h3 className="text-lg font-medium text-white mb-2">Connection Statistics</h3>
                 </div>
-                <div className="h-[15rem] bg-black rounded-lg border border-gray-600 relative">
+                <div className="h-[12.5rem] bg-black rounded-lg border border-gray-600 relative">
                   <div className="bg-gray-900 w-full h-full rounded-lg">
                     <canvas
                       ref={chartRef}
@@ -320,7 +346,7 @@ const App = () => {
                           Upload Chords Arduino Firmware
                         </h5>
                         <p className="text-gray-400 text-sm">
-                          Open https://github.com/upsidedownlabs/Chords-Arduino-Firmware and upload the firmware according to your development board.
+                          Visit <a className="underline text-blue-400" href="https://github.com/upsidedownlabs/Chords-Arduino-Firmware" target="_blank" rel="noopener noreferrer">Chords Arduino Firmware repository</a> and upload the firmware for your development board.
                         </p>
                       </div>
                     </div>
@@ -333,10 +359,10 @@ const App = () => {
                       </div>
                       <div>
                         <h5 className="font-medium text-white mb-2">
-                          Connect and Start LSL stream
+                          Connect your development board
                         </h5>
                         <p className="text-gray-400 text-sm">
-                          first connect the board se the serial if use the ble then turn on the bluetooth and device ,if you use the wifi then conect the device first to your system via wifi. after start stream then your you can visualise your biopotential signals any lsl viewer
+                          Connect your board via Serial/BLE/WiFi and follow steps on screen to start the LSL stream.
                         </p>
                       </div>
                     </div>
@@ -373,7 +399,7 @@ const App = () => {
                         key={device.id}
                         className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors"
                         onClick={async () => {
-                         await core.invoke<string>("connect_to_ble", { deviceId: device.id });
+                          await core.invoke<string>("connect_to_ble", { deviceId: device.id });
                           setDeviceConnected(true);
                           setScane(false);
                         }}

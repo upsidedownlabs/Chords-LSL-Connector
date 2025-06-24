@@ -12,6 +12,8 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
+    "@fortawesome/free-brands-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@radix-ui/react-slot": "^1.1.1",
     "@tauri-apps/plugin-shell": "^2.2.2",
     "@types/smoothie": "^1.25.29",
