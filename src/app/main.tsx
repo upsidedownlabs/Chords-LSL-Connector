@@ -373,6 +373,7 @@ const App = () => {
                         key={device.id}
                         className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors"
                         onClick={async () => {
+                         await core.invoke<string>("connect_to_ble", { deviceId: device.id });
                           setDeviceConnected(true);
                           setScane(false);
                         }}
