@@ -147,7 +147,7 @@ const App = () => {
 
       unlistenFns.push(unlistenSamplerate);
 
-      const unlistenconnection = await listen('connection', (event) => {
+      const unlistenconnection = await listen('connection', () => {
         setDeviceConnected(true);
         setconnecting(false);
       });
