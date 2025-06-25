@@ -20,7 +20,8 @@
         "visible": true,
         "closable": true,
         "minimizable": true,
-        "alwaysOnTop": false
+        "alwaysOnTop": false,
+        "devtools": true
       }
     ],
     "security": {

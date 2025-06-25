@@ -44,3 +44,9 @@ body,
   background-size: 200% 200%;
   animation: gradient-move 4s ease infinite;
 }
+@media (-webkit-min-device-pixel-ratio: 1.25) {
+  canvas {
+    transform: scale(0.8);
+    transform-origin: 0 0;
+  }
+}
