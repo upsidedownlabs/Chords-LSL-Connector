@@ -88,10 +88,9 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APP_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
-          base64 --decode > developer_app.p12 <<EOF ${CERT_DEVELOPER_APP_BASE64} EOF
-                        
-          base64 --decode > developer_installer.p12 <<EOF ${CERT_DEVELOPER_INSTALL_BASE64} EOF
-          echo "Setting up keychain for code signing and notarization"
+          echo "$CERT_DEVELOPER_APP_BASE64" | base64 --decode > developer_app.p12
+          echo "$CERT_DEVELOPER_INSTALL_BASE64" | base64 --decode > developer_installer.p12
+
           security create-keychain -p "" build.keychain-db
           security default-keychain -s build.keychain-db
           security unlock-keychain -p "" build.keychain-db
