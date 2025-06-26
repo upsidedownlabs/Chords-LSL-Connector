@@ -15,7 +15,7 @@
         "title": "Chords LSL Connector (v0.3.0)",
         "width": 900,
         "height": 530,
-        "resizable": true,
+        "resizable": false,
         "fullscreen": false,
         "visible": true,
         "closable": true,
