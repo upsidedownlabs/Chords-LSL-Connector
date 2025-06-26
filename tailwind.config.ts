@@ -19,6 +19,8 @@ const config = {
     },
     extend: {
       screens: {
+        'cs1': '900px',
+        'cs2': '900px',
         '2xl': '1400px',
       },
       fontFamily: {
@@ -64,9 +66,10 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius, 0.5rem)", // Falls back to 0.5rem if --radius isn't defined
+        md: "calc(var(--radius, 0.5rem) - 2px)",
+        sm: "calc(var(--radius, 0.5rem) - 4px)",
+        DEFAULT: "0.5rem", // Explicit default
       },
       keyframes: {
         "accordion-down": {
