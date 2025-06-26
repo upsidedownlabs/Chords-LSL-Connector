@@ -45,7 +45,7 @@ const App = () => {
       setTotalSample(0);
       await core.invoke("start_wifistreaming");
       isProcessing.current = true;
-
+   
     } catch (error) {
       console.error('Failed to connect to device:', error);
     }
@@ -63,33 +63,8 @@ const App = () => {
   };
   const createChart = () => {
     if (!chartRef.current) return;
-  
-    const canvas = chartRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    // Add null check for context
-    if (!ctx) {
-      console.error('Could not get 2D context from canvas');
-      return;
-    }
-  
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Get the actual rendered size
-    const rect = canvas.getBoundingClientRect();
-    
-    // Set the canvas size in physical pixels
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    
-    // Scale the context to ensure proper drawing
-    ctx.scale(dpr, dpr);
-    
-    // Set the canvas CSS size to match the element size
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-  
-    // Create the SmoothieChart
+
+    // Create a new SmoothieChart with slower scrolling
     smoothieChartRef.current = new SmoothieChart({
       limitFPS: 20,
       grid: {
@@ -99,12 +74,13 @@ const App = () => {
         verticalSections: 6,
         borderVisible: false
       },
+
       labels: {
-        fillStyle: '#ffffff',
+        fillStyle: '#ffffff',           // White text
         fontSize: 12,
-        precision: 0,
-        showIntermediateLabels: true,
-        disabled: false
+        precision: 0,                   // No decimal places
+        showIntermediateLabels: true,  // Show intermediate ticks (optional)
+        disabled: false                // <-- ENABLE LABELS
       },
       tooltip: true,
       tooltipLine: {
@@ -117,7 +93,7 @@ const App = () => {
       millisPerPixel: 100,
       yRangeFunction: () => ({ min: 0, max: 1000 })
     });
-  
+
     // Create and add TimeSeries
     timeSeriesRef.current = new TimeSeries();
     smoothieChartRef.current.addTimeSeries(timeSeriesRef.current, {
@@ -125,12 +101,11 @@ const App = () => {
       lineWidth: 2,
       fillStyle: 'rgba(0, 255, 0, 0.1)'
     });
-  
-    // Stream to canvas
-    if (chartRef.current) {
-      smoothieChartRef.current.streamTo(chartRef.current, 50);
-    }
+
+    // Stream to canvas with faster updates for smoother rendering
+    smoothieChartRef.current.streamTo(chartRef.current, 50);
   };
+  
   useEffect(() => {
     if (deviceConnected) {
       createChart();
@@ -179,7 +154,7 @@ const App = () => {
       });
 
       unlistenFns.push(unlistenconnection);
-
+      
       const unlistenSamplelost = await listen('samplelost', (event) => {
         setSamplelost(event.payload as number);
       });
@@ -211,38 +186,12 @@ const App = () => {
   const handleClick = async (url: string) => {
     await open(url);
   };
-  // Add this early in your component
-  const [dpiScale, setDpiScale] = useState(1);
-
-  useEffect(() => {
-    // Detect DPI scale factor
-    const updateScale = () => {
-      setDpiScale(window.devicePixelRatio || 1);
-    };
-
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
-  // Then use this scale factor in your styles
-  const scaleStyle = {
-    transform: dpiScale > 1 ? `scale(${1 / dpiScale})` : 'none',
-    transformOrigin: 'top left',
-    width: dpiScale > 1 ? `${dpiScale * 100}%` : '100%',
-    height: dpiScale > 1 ? `${dpiScale * 100}%` : '100%'
-  };
+  
 
   return (
     <>
-    <div style={{
-    width: '100vw',
-    height: '100vh',
-    overflow: 'hidden'
-  }}>   
-      <div style={scaleStyle}>
-      <div className=" flex-col bg-gray-200 overflow-hidden">
-        <div className="bg-gray-800   p-6 ">
+      <div className=" flex-col bg-gray-200 h-[100vh] overflow-hidden">
+        <div className="bg-gray-800 h-[100vh]  p-6 ">
           <div className="flex justify-between items-center mb-4">
             <h2 className="flex items-center text-2xl font-semibold text-white gap-2">
               <div className="font-rancho font-bold text-2xl duration-300 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-transparent bg-clip-text">
@@ -257,7 +206,7 @@ const App = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-3 gap-4">
             {(
               [
                 { type: "bluetooth", title: "Bluetooth LE", description: "For wireless Bluetooth LE connectivity" },
@@ -295,7 +244,7 @@ const App = () => {
                   }`}
               >
                 <div
-                  className={`relative rounded-lg p-4 transition-all duration-200 border border-transparent bg-gray-700`}
+                  className={`relative rounded-lg p-4 h-full transition-all duration-200 border border-transparent bg-gray-700`}
                 >
                   <div className="flex items-center text-white">
                     {getFirmwareIcon(option.type)}
@@ -351,10 +300,10 @@ const App = () => {
                   <h3 className="text-lg font-medium text-white mb-2">Connection Statistics</h3>
                 </div>
                 <div className="h-[12.5rem] bg-black rounded-lg border border-gray-600 relative">
-                  <div className="bg-gray-900 w-full h-full rounded-lg">
+                  <div className="bg-gray-900 w-full h-full rounded-lg ">
                     <canvas
                       ref={chartRef}
-                      className="w-full h-full rounded-lg"
+                      className="sm:w-full sm:h-full cs1:w-[1040px] cs1:h-[248px] cs2:w-[1043px] rounded-lg " 
                     />
                   </div>
 
@@ -493,8 +442,6 @@ const App = () => {
             </div>
           </div>
         )}
-      </div>
-      </div>
       </div>
     </>
   );

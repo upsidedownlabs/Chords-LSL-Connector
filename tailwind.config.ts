@@ -19,6 +19,8 @@ const config = {
     },
     extend: {
       screens: {
+        'cs1': '900px',
+        'cs2': '900px',
         '2xl': '1400px',
       },
       fontFamily: {
