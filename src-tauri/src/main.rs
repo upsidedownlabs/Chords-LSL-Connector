@@ -116,12 +116,7 @@ fn detect_arduino_internal() -> Result<String, String> {
                                         {
                                             *BITS.lock().unwrap() = "12".into();
                                             // Change the bits dynamically
-                                        } else if response.contains("RPI-PICO-RP2040")
-                                            || response.contains("NPG-LITE")
-                                        {
-                                            *BITS.lock().unwrap() = "12".into();
-                                            // Change the bits dynamically
-                                        } else if response.contains("UNO-R4") {
+                                        }  else if response.contains("UNO-R4") {
                                             *BITS.lock().unwrap() = "14".into();
                                             // Change the bits dynamically
                                         }
