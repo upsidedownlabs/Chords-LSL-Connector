@@ -259,10 +259,10 @@ const App = () => {
             <span className="text-white text-sm pl-2">Visualise/Record your signals using</span>
 
             <button
-              onClick={() => handleClick("https://www.brainproducts.com/downloads/more-software/")}
+              onClick={() => handleClick("https://github.com/upsidedownlabs/Chords-LSL-Visualizer/releases/")}
               className="flex items-center gap-2 px-3 py-1 bg-pink-500  text-white rounded-md text-sm transition-colors cursor-pointer "
             >
-              BV LSL Viewer <FontAwesomeIcon icon={faWindows} />
+              Chords LSL Visualizer <FontAwesomeIcon icon={faWindows} />
 
 
             </button>

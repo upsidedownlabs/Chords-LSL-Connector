@@ -22,6 +22,8 @@ lazy_static! {
     static ref BAUDRATE: Arc<Mutex<u32>> = Arc::new(Mutex::new(230400)); // Default baud rate
     static ref PACKET_SIZE: Arc<Mutex<usize>> = Arc::new(Mutex::new(16)); // Default baud rate
     static ref CHANNELS: Arc<Mutex<usize>> = Arc::new(Mutex::new(6)); // Default baud rate
+    static ref BITS: Arc<Mutex<String>> = Arc::new(Mutex::new("10".into())); // Default baud rate
+
     static ref SAMPLE_RATE: Arc<Mutex<f64>> = Arc::new(Mutex::new(500.0)); // Default baud rate
 }
 use std::collections::VecDeque;
@@ -95,6 +97,29 @@ fn detect_arduino_internal() -> Result<String, String> {
                                         || response.contains("STM32F4-BLACK-PILL")
                                         || response.contains("NPG-LITE")
                                     {
+                                        if response.contains("UNO-R3")
+                                            || response.contains("UNO-CLONE")
+                                            || response.contains("NANO-CLONE")
+                                            || response.contains("MEGA-2560-R3")
+                                            || response.contains("MEGA-2560-CLONE")
+                                            || response.contains("GENUINO-UNO")
+                                            || response.contains("NANO-CLASSIC")
+                                        {
+                                            *BITS.lock().unwrap() = "10".into();
+                                        } else if response.contains("GIGA-R1") {
+                                            *BITS.lock().unwrap() = "16".into();
+                                        // Change the bits dynamically
+                                        } else if response.contains("RPI-PICO-RP2040")
+                                            || response.contains("STM32G4-CORE-BOARD")
+                                            || response.contains("STM32F4-BLACK-PILL")
+                                            || response.contains("NPG-LITE")
+                                        {
+                                            *BITS.lock().unwrap() = "12".into();
+                                            // Change the bits dynamically
+                                        }  else if response.contains("UNO-R4") {
+                                            *BITS.lock().unwrap() = "14".into();
+                                            // Change the bits dynamically
+                                        }
                                         if response.contains("NANO-CLONE")
                                             || response.contains("NANO-CLASSIC")
                                             || response.contains("STM32F4-BLACK-PILL")
@@ -153,22 +178,29 @@ async fn start_streaming(port_name: String, app_handle: AppHandle) {
     let (tx, mut rx) = mpsc::channel::<Vec<i16>>(100);
 
     // Create StreamInfo as before
-    let info = Arc::new(
-        lsl::StreamInfo::new(
-            "UDL",
-            "Biopotential_Signals",
-            (*CHANNELS.lock().unwrap()).try_into().unwrap(),
-            *SAMPLE_RATE.lock().unwrap(),
-            lsl::ChannelFormat::Int16,
-            "Chords",
-        )
-        .unwrap(),
-    );
+    let mut info = StreamInfo::new(
+        "UDL",
+        "Biopotential_Signals",
+        (*CHANNELS.lock().unwrap()).try_into().unwrap(),
+        *SAMPLE_RATE.lock().unwrap(),
+        lsl::ChannelFormat::Int16,
+        "Chords",
+    )
+    .unwrap();
+   
+    let mut desc = info.desc();
+    let mut resinfo = desc.append_child("resinfo");
+    resinfo.append_child_value("resolution", &*BITS.lock().unwrap());
 
-    // Create StreamOutlet in the same thread
+    // Print the XML description
+    println!("LSL Stream XML Description:");
+    match info.to_xml() {
+        Ok(xml) => println!("{}", xml),
+        Err(e) => println!("Failed to get XML description: {:?}", e),
+    }
+ // Create StreamOutlet in the same thread
     let (tx, rx) = std::sync::mpsc::channel::<Vec<i16>>();
     let outlet = Arc::new(Mutex::new(StreamOutlet::new(&info, 0, 360).unwrap()));
-
     // Use spawn_blocking to handle the task in a separate thread
     tokio::task::spawn_blocking(move || loop {
         match serialport::new(&port_name, *BAUDRATE.lock().unwrap())
@@ -284,7 +316,7 @@ fn calculate_rate(data_size: usize, elapsed_time: f64) -> f64 {
 async fn start_wifistreaming(app_handle: AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         let stream_name = "NPG-Lite";
-        let info = StreamInfo::new(
+        let mut info = StreamInfo::new(
             stream_name,
             "EXG",
             3,
@@ -293,6 +325,9 @@ async fn start_wifistreaming(app_handle: AppHandle) {
             "uidwifi007",
         )
         .expect("Failed to create StreamInfo");
+        let mut desc = info.desc();
+        let mut resinfo = desc.append_child("resinfo");
+        resinfo.append_child_value("resolution", "12");
 
         let outlet = StreamOutlet::new(&info, 0, 360).expect("Failed to create StreamOutlet");
 
@@ -300,7 +335,7 @@ async fn start_wifistreaming(app_handle: AppHandle) {
         let (mut socket, _) =
             connect(Url::parse(ws_url).expect("Failed to parse URL")).expect("WebSocket failed");
         println!("{} WebSocket connected!", stream_name);
-        let _ = app_handle.emit("connection", "Connected"); 
+        let _ = app_handle.emit("connection", "Connected");
         let mut block_size = 13;
         let mut packet_size = 0;
         let mut data_size = 0;
@@ -431,7 +466,7 @@ lazy_static! {
 
 // Create BLE LSL outlet
 fn create_ble_outlet() -> Result<(), String> {
-    let info = StreamInfo::new(
+    let mut info = StreamInfo::new(
         "NPG-Lite",
         "EXG",
         3,
@@ -440,6 +475,18 @@ fn create_ble_outlet() -> Result<(), String> {
         "uidbluetooth007",
     )
     .map_err(|e| e.to_string())?;
+
+    let mut desc = info.desc();
+    let mut resinfo = desc.append_child("resinfo");
+    resinfo.append_child_value("resolution", "12");
+
+    // Debug XML
+    match info.to_xml() {
+        Ok(xml) => println!("✅ Final LSL StreamInfo:\n{}", xml),
+        Err(e) => println!("❌ XML error: {}", e),
+    }
+    println!("[DEBUG] StreamInfo XML:\n{}", info.to_xml().unwrap());
+
     let outlet = StreamOutlet::new(&info, 0, 360).map_err(|e| e.to_string())?;
     *BLE_OUTLET.lock().unwrap() = SafeOutlet(Some(outlet));
     Ok(())
@@ -703,6 +750,7 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                 *BLE_CONNECTED.lock().unwrap() = true;
 
                 println!("[LSL] Creating outlet...");
+
                 if let Err(e) = create_ble_outlet() {
                     println!("[ERROR] Outlet creation failed: {}", e);
                     return Err(format!("LSL initialization failed: {}", e));
@@ -792,7 +840,7 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                     const EXPECTED_SAMPLE_RATE: f64 = 500.0; // Fixed expected sample rate
                     const SAMPLES_PER_SECOND: usize = EXPECTED_SAMPLE_RATE as usize;
                     const BUFFER_SIZE: usize = 20;
-                    
+
                     let mut sample_count = 0;
                     let mut packet_count = 0;
                     let mut lost_samples = 0;
@@ -800,28 +848,36 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                     let start_time = Instant::now();
                     let mut last_print_time = Instant::now();
                     let mut buffer: VecDeque<f64> = VecDeque::with_capacity(BUFFER_SIZE);
-                
+
                     while *BLE_CONNECTED.lock().unwrap() {
                         if let Some(data) = notifications.next().await {
                             packet_count += 1;
-                            
+
                             match data.value.len() {
                                 NEW_PACKET_LEN => {
                                     for chunk in data.value.chunks_exact(SINGLE_SAMPLE_LEN) {
-                                        if let Ok(sample) = process_ble_sample(chunk, app_handle_clone.clone()) {
+                                        if let Ok(sample) =
+                                            process_ble_sample(chunk, app_handle_clone.clone())
+                                        {
                                             // Check sample counter continuity
                                             let current_sample_number = chunk[0];
                                             if let Some(last) = last_sample_number {
                                                 let expected = last.wrapping_add(1);
                                                 if current_sample_number != expected {
-                                                    lost_samples += current_sample_number.wrapping_sub(expected) as usize;
-                                                    println!("Lost {} samples", current_sample_number.wrapping_sub(expected));
+                                                    lost_samples += current_sample_number
+                                                        .wrapping_sub(expected)
+                                                        as usize;
+                                                    println!(
+                                                        "Lost {} samples",
+                                                        current_sample_number
+                                                            .wrapping_sub(expected)
+                                                    );
                                                 }
                                             }
                                             last_sample_number = Some(current_sample_number);
-                                            
+
                                             sample_count += 1;
-                                            
+
                                             // Push to LSL
                                             if let Some(outlet) = &BLE_OUTLET.lock().unwrap().0 {
                                                 if let Err(e) = outlet.push_sample(&sample) {
@@ -832,20 +888,27 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                                     }
                                 }
                                 SINGLE_SAMPLE_LEN => {
-                                    if let Ok(sample) = process_ble_sample(&data.value, app_handle_clone.clone()) {
+                                    if let Ok(sample) =
+                                        process_ble_sample(&data.value, app_handle_clone.clone())
+                                    {
                                         // Check sample counter continuity
                                         let current_sample_number = data.value[0];
                                         if let Some(last) = last_sample_number {
                                             let expected = last.wrapping_add(1);
                                             if current_sample_number != expected {
-                                                lost_samples += current_sample_number.wrapping_sub(expected) as usize;
-                                                println!("Lost {} samples", current_sample_number.wrapping_sub(expected));
+                                                lost_samples += current_sample_number
+                                                    .wrapping_sub(expected)
+                                                    as usize;
+                                                println!(
+                                                    "Lost {} samples",
+                                                    current_sample_number.wrapping_sub(expected)
+                                                );
                                             }
                                         }
                                         last_sample_number = Some(current_sample_number);
-                                        
+
                                         sample_count += 1;
-                                        
+
                                         if let Some(outlet) = &BLE_OUTLET.lock().unwrap().0 {
                                             if let Err(e) = outlet.push_sample(&sample) {
                                                 println!("[LSL] Push error: {}", e);
@@ -855,40 +918,33 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                                 }
                                 len => println!("[WARN] Unexpected packet length: {}", len),
                             }
-                
+
                             // Calculate statistics every second
                             let elapsed = last_print_time.elapsed().as_secs_f64();
                             if elapsed >= 1.0 {
                                 // Calculate actual sample rate (should be close to 500)
                                 let actual_rate = sample_count as f64 / elapsed;
-                                
+
                                 // Calculate percentage of expected samples received
                                 let expected_samples = (EXPECTED_SAMPLE_RATE * elapsed) as usize;
-                                let received_percentage = (sample_count as f64 / expected_samples as f64) * 100.0;
-                                
+                                let received_percentage =
+                                    (sample_count as f64 / expected_samples as f64) * 100.0;
+
                                 // Maintain buffer for smoothing
                                 if buffer.len() == BUFFER_SIZE {
                                     buffer.pop_front();
                                 }
                                 buffer.push_back(received_percentage);
-                                
+
                                 // Calculate average reception percentage
-                                let avg_percentage: f64 = buffer.iter().sum::<f64>() / buffer.len() as f64;
-                                
-                                // println!(
-                                //     "Expected: {:.1}Hz, Actual: {:.1}Hz, Received: {:.1}% (Avg: {:.1}%), Lost: {}",
-                                //     EXPECTED_SAMPLE_RATE,
-                                //     actual_rate,
-                                //     received_percentage,
-                                //     avg_percentage,
-                                //     lost_samples
-                                // );
-                
+                                let avg_percentage: f64 =
+                                    buffer.iter().sum::<f64>() / buffer.len() as f64;
+
                                 // Emit quality metrics to frontend
                                 let _ = app_handle_clone.emit("samplerate", actual_rate);
                                 let _ = app_handle_clone.emit("samplelost", lost_samples);
                                 let _ = app_handle_clone.emit("lsl", "uidbluetooth007");
-                
+
                                 // Reset counters
                                 sample_count = 0;
                                 lost_samples = 0;
@@ -899,7 +955,7 @@ async fn connect_to_ble(device_id: String, app_handle: AppHandle) -> Result<Stri
                             break;
                         }
                     }
-                
+
                     println!("[TASK] Cleaning up...");
                     close_ble_outlet();
                 });
