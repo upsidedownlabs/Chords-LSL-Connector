@@ -1,0 +1,6 @@
+{
+  "version": "0.3.1",
+  "name": "Chords LSL Connector",
+  "identifier": "com.upsidedownlabs.chords",
+  "description": "Rust based LSL connector for device running Chords Firmware"
+}

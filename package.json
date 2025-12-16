@@ -1,15 +1,16 @@
 {
   "name": "chords-lsl-app",
-  "version": "0.3.2",
+  "version": "0.3.9",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run version:sync && next dev",
+    "build": "npm run version:sync && next build",
     "start": "next start",
     "lint": "next lint",
-    "tauri": "tauri",
-    "tauri:build": "tauri build"
+    "tauri": "npm run version:sync && tauri",
+    "tauri:build": "npm run version:sync && tauri build",
+    "version:sync": "node scripts/sync-version.cjs"
   },
   "dependencies": {
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
@@ -31,8 +32,9 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@iarna/toml": "^2.2.5",
     "@tauri-apps/api": "^2.1.1",
-    "@types/node": "^20",
+    "@types/node": "^20.19.27",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "@types/webpack-env": "^1.18.5",
@@ -41,7 +43,8 @@
     "eslint-config-next": "^16.0.7",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "overrides": {
     "glob": "^10.5.0",

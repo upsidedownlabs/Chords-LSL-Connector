@@ -1,36 +1,56 @@
 [package]
 name = "Chords-Lsl-Connector"
-version = "0.3.2"
-description = "Rust based LSL connector for device running Chords Firmware."
-authors = ["Aman Maheshwari", "Deepak Khatri"]
+version = "0.3.9"
+description = "Rust based LSL connector for device running Chords Firmware"
+authors = [ "Aman Maheshwari", "Deepak Khatri" ]
 license = "GPL V3"
 repository = "https://github.com/upsidedownlabs/Chords-LSL-Connector"
 edition = "2021"
 rust-version = "1.77.2"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = [ "staticlib", "cdylib", "rlib" ]
 
-[build-dependencies]
-tauri-build = { version = "2.0.2", features = [] }
+[build-dependencies.tauri-build]
+version = "2.0.2"
+features = [ ]
 
 [dependencies]
 crossbeam-channel = "0.5"
 futures = "0.3"
-uuid = { version = "1.0", features = ["v4", "serde"] }
-btleplug = "0.11"  # Use the latest version if available
+btleplug = "0.11"
 tungstenite = "0.20"
 url = "2.5"
 chrono = "0.4"
-tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.1.1", features = [] }
 tauri-plugin-log = "2.0.0-rc"
-serialport = { git = "https://github.com/LukaOber/serialport-rs" }
-lsl = { git = "https://github.com/labstreaminglayer/liblsl-rust", version = "0.1.1" }
 lazy_static = "1.4"
-tauri-plugin-shell = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+
+  [dependencies.uuid]
+  version = "1.0"
+  features = [ "v4", "serde" ]
+
+  [dependencies.tokio]
+  version = "1"
+  features = [ "full" ]
+
+  [dependencies.serde]
+  version = "1.0"
+  features = [ "derive" ]
+
+  [dependencies.tauri]
+  version = "2.1.1"
+  features = [ ]
+
+  [dependencies.serialport]
+  git = "https://github.com/LukaOber/serialport-rs"
+
+  [dependencies.lsl]
+  git = "https://github.com/labstreaminglayer/liblsl-rust"
+  version = "0.1.1"
+
+  [dependencies.tauri-plugin-shell]
+  git = "https://github.com/tauri-apps/plugins-workspace"
+  branch = "v2"
