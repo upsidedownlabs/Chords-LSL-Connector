@@ -227,8 +227,8 @@ cl
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/upsidedownlabs/Chords-LSL-Visualizer.git
-cd Chords-LSL-Visualizer
+git clone https://github.com/upsidedownlabs/Chords-LSL-Connector.git
+cd Chords-LSL-Connector
 npm install
 cargo tauri dev
 ```
