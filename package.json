@@ -1,29 +1,30 @@
 {
   "name": "chords-lsl-app",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "npm run version:sync && next dev",
     "build": "npm run version:sync && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "tauri": "npm run version:sync && tauri",
     "tauri:build": "npm run version:sync && tauri build",
     "version:sync": "node scripts/sync-version.cjs"
   },
   "dependencies": {
-    "@fortawesome/free-brands-svg-icons": "6.7.2",
-    "@fortawesome/react-fontawesome": "0.2.2",
-    "@radix-ui/react-slot": "^1.2.4",
-    "@tauri-apps/plugin-shell": "2.2.2",
-    "@types/smoothie": "1.25.29",
+    "@fortawesome/fontawesome-svg-core": "7.3.1",
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/react-fontawesome": "3.5.0",
+    "@radix-ui/react-slot": "^1.3.3",
+    "@tauri-apps/plugin-shell": "2.3.6",
+    "@types/smoothie": "1.29.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "0.469.0",
-    "next": "^16.2.6",
-    "react": "19.0.1",
-    "react-dom": "19.0.1",
+    "lucide-react": "0.577.0",
+    "next": "^16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "smoothie": "1.36.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "1.0.7"
@@ -31,21 +32,21 @@
   "devDependencies": {
     "@eslint/eslintrc": "3",
     "@iarna/toml": "2.2.5",
-    "@tauri-apps/api": "2.1.1",
-    "@types/node": "20.19.27",
-    "@types/react": "19.0.1",
-    "@types/react-dom": "19.0.1",
-    "@types/webpack-env": "1.18.5",
-    "autoprefixer": "10.4.21",
-    "eslint": "9",
-    "eslint-config-next": "16.0.7",
-    "postcss": "8.5.6",
-    "tailwindcss": "3.4.17",
+    "@tauri-apps/api": "2.11.1",
+    "@types/node": "26.4.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@types/webpack-env": "1.18.8",
+    "autoprefixer": "10.5.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.4",
+    "postcss": "8.5.26",
+    "tailwindcss": "3.4.19",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "overrides": {
-    "glob": "10.5.0",
-    "js-yaml": "4.1.1"
+    "glob": "13.0.6",
+    "js-yaml": "5.4.1"
   }
 }
