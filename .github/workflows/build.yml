@@ -1,9 +1,12 @@
-name: Build and Release Tauri App
+name: Build and Release Chords-LSL-Connector App
 
 on:
   push:
     branches:
       - main
+
+permissions:
+  contents: write
 
 jobs:
   check-version-and-tag:
@@ -102,19 +105,30 @@ jobs:
           echo "$CERT_DEVELOPER_APP_BASE64" | base64 --decode > developer_app.p12
           echo "$CERT_DEVELOPER_INSTALL_BASE64" | base64 --decode > developer_installer.p12
 
-          security create-keychain -p "" build.keychain-db >/dev/null 2>&1
-          security default-keychain -s build.keychain-db >/dev/null 2>&1
-          security unlock-keychain -p "" build.keychain-db >/dev/null 2>&1
+          # Create a clean, isolated keychain for this run
+          security create-keychain -p "" build.keychain-db
+          security set-keychain-settings -lut 21600 build.keychain-db
+          security default-keychain -s build.keychain-db
+          security unlock-keychain -p "" build.keychain-db
 
-          security import developer_app.p12 -k build.keychain-db -P "$CERT_PASSWORD" -T /usr/bin/codesign >/dev/null 2>&1
-          security import developer_installer.p12 -k build.keychain-db -P "$CERT_PASSWORD" -T /usr/bin/productsign >/dev/null 2>&1
+          # IMPORTANT: add the new keychain to the search list.
+          # Without this, codesign / notarytool intermittently fail to find the identity,
+          # depending on runner state (default keychain alone is not reliably scanned).
+          security list-keychains -d user -s build.keychain-db login.keychain-db
 
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain-db >/dev/null 2>&1
+          security import developer_app.p12 -k build.keychain-db -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security import developer_installer.p12 -k build.keychain-db -P "$CERT_PASSWORD" -T /usr/bin/productsign
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain-db
+
+          # Sanity check: fail fast here with a clear message instead of a confusing codesign error later
+          echo "Identities available for signing:"
+          security find-identity -v -p codesigning build.keychain-db
 
           xcrun notarytool store-credentials "AC_PASSWORD" \
             --apple-id "$APPLE_ID" \
             --team-id "$TEAM_ID" \
-            --password "$APPLE_PASSWORD" >/dev/null 2>&1
+            --password "$APPLE_PASSWORD"
 
       - name: Build Tauri App
         run: npx tauri build
@@ -133,9 +147,14 @@ jobs:
         env:
           MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
+          security unlock-keychain -p "" build.keychain-db
+          security list-keychains -d user -s build.keychain-db login.keychain-db
+
           codesign --deep --force --verbose --options runtime \
             --sign "${MACOS_SIGN_IDENTITY}" \
-            SignedApp/*.app >/dev/null
+            --keychain build.keychain-db \
+            SignedApp/*.app
+
           codesign --verify --deep --strict --verbose=2 SignedApp/*.app
 
       - name: Rebuild .dmg with signed .app and versioned name
@@ -158,13 +177,13 @@ jobs:
           dmg_path=$(find rebuilt-dmg -name "*.dmg" | head -n 1)
           xcrun notarytool submit "$dmg_path" \
             --keychain-profile "AC_PASSWORD" \
-            --wait >/dev/null
+            --wait
 
       - name: Staple Notarization Ticket
         if: runner.os == 'macOS'
         run: |
           dmg_path=$(find rebuilt-dmg -name "*.dmg" | head -n 1)
-          xcrun stapler staple "$dmg_path" >/dev/null
+          xcrun stapler staple "$dmg_path"
 
       - name: Upload Artifact for macOS
         if: runner.os == 'macOS'
@@ -207,7 +226,7 @@ jobs:
       - name: Verify Created Tag
         id: verified_version
         run: |
-          version="v$(jq -r '.version' package.json)"
+          version="v$(jq -r '.version' version.json)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if ! git tag -l | grep -q "$version"; then
             echo "Error: Tag $version not found."
